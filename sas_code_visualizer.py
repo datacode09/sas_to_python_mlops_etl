@@ -1,59 +1,100 @@
+import re
 import networkx as nx
 import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
+from collections import defaultdict
 
-# Enhanced visualization function
-def visualize_enhanced_graph(graph):
-    pos = nx.spring_layout(graph, seed=42)  # Consistent layout with a fixed seed
-    plt.figure(figsize=(14, 10))
+# Read the SAS file
+def read_sas_file(file_path):
+    with open(file_path, 'r') as file:
+        return file.readlines()
 
-    # Define node types and colors
-    color_map = {'macro': 'skyblue', 'proc': 'lightgreen', 'dataset': 'salmon'}
-    shape_map = {'macro': 'o', 'proc': 's', 'dataset': 'D'}
-    labels = nx.get_node_attributes(graph, 'type')
+# Identify and extract macros, PROC steps, and data dependencies
+def extract_elements(sas_lines):
+    macros = {}
+    procs = []
+    data_dependencies = []
     
-    # Draw nodes with different shapes and colors based on their type
-    for node_type, color in color_map.items():
-        nx.draw_networkx_nodes(
-            graph,
-            pos,
-            nodelist=[node for node, attr in graph.nodes(data=True) if attr.get('type') == node_type],
-            node_shape=shape_map[node_type],
-            node_color=color,
-            label=node_type.capitalize(),
-            node_size=2000,
-            edgecolors="black"
-        )
+    macro_name = None
+    in_macro = False
+    for line in sas_lines:
+        # Identify macro definition
+        macro_def = re.match(r"%macro\s+(\w+)", line, re.IGNORECASE)
+        if macro_def:
+            macro_name = macro_def.group(1)
+            macros[macro_name] = []
+            in_macro = True
 
-    # Draw edges with different styles for macro calls vs. data dependencies
-    nx.draw_networkx_edges(graph, pos, edgelist=graph.edges(), arrows=True, arrowstyle='->', arrowsize=20)
+        # Identify end of macro
+        if in_macro and re.search(r"%mend", line, re.IGNORECASE):
+            macro_name = None
+            in_macro = False
 
-    # Draw node labels
+        # Identify macro calls
+        if in_macro and macro_name:
+            macro_call = re.findall(r"%(\w+)\s*\(", line)
+            macros[macro_name].extend(macro_call)
+        
+        # Identify PROC steps
+        proc_step = re.match(r"proc\s+(\w+)", line, re.IGNORECASE)
+        if proc_step:
+            procs.append(proc_step.group(1))
+        
+        # Identify dataset dependencies
+        data_step = re.search(r"data\s*=\s*(\w+)", line, re.IGNORECASE)
+        if data_step:
+            data_dependencies.append(data_step.group(1))
+    
+    return macros, procs, data_dependencies
+
+# Build a process flow graph
+def build_graph(macros, procs, data_dependencies):
+    graph = nx.DiGraph()
+
+    # Add macros and their calls
+    for macro, calls in macros.items():
+        graph.add_node(macro, type='macro')
+        for call in calls:
+            graph.add_node(call, type='macro')  # Ensure called macros have a type
+            graph.add_edge(macro, call)
+
+    # Add PROC steps as nodes
+    for proc in procs:
+        graph.add_node(proc, type='proc')
+
+    # Add data dependencies as nodes and edges
+    for i in range(len(data_dependencies) - 1):
+        graph.add_node(data_dependencies[i], type='dataset')  # Default type for datasets
+        graph.add_node(data_dependencies[i + 1], type='dataset')
+        graph.add_edge(data_dependencies[i], data_dependencies[i + 1], type='data_dependency')
+    
+    return graph
+
+# Visualize the graph
+def visualize_and_save_graph(graph, output_path="procedure_flow.png"):
+    pos = nx.spring_layout(graph, seed=42)
+    plt.figure(figsize=(12, 12))
+
+    # Color nodes by type with a default color for nodes without a type
+    colors = [
+        'skyblue' if data.get('type') == 'macro' else 'lightgreen' if data.get('type') == 'proc' else 'lightcoral'
+        for _, data in graph.nodes(data=True)
+    ]
+    nx.draw_networkx_nodes(graph, pos, node_color=colors, node_size=2000)
+    nx.draw_networkx_edges(graph, pos, arrowstyle='->', arrowsize=20)
     nx.draw_networkx_labels(graph, pos, font_size=10)
 
-    # Add legend (only color-based since shapes can't be displayed in legend directly)
-    legend_elements = [
-        Patch(facecolor=color_map['macro'], edgecolor='black', label='Macro'),
-        Patch(facecolor=color_map['proc'], edgecolor='black', label='Procedure'),
-        Patch(facecolor=color_map['dataset'], edgecolor='black', label='Dataset'),
-    ]
-    plt.legend(handles=legend_elements, loc='best')
-
-    plt.title("Enhanced SAS Process Flow Graph")
-    plt.axis('off')
+    plt.title("SAS Process Flow Graph")
+    # Save the plot as a high-resolution PNG
+    plt.savefig(output_path, format="png", dpi=300)  # 300 DPI for high resolution
     plt.show()
 
-    
-    
-# Assuming all the previous functions (e.g., read_sas_file, extract_elements, build_graph) are defined
+# Main function to execute the analysis
+def main(sas_file_path):
+    sas_lines = read_sas_file(sas_file_path)
+    macros, procs, data_dependencies = extract_elements(sas_lines)
+    graph = build_graph(macros, procs, data_dependencies)
+    visualize_and_save_graph(graph)
 
-# Read the SAS file and build the graph
+# Run the analysis
 sas_file_path = 'complex_sas.sas'  # Update with the actual path to your SAS file
-sas_lines = read_sas_file(sas_file_path)       # Read the SAS file
-macros, procs, data_dependencies = extract_elements(sas_lines)  # Extract elements
-graph = build_graph(macros, procs, data_dependencies)           # Build the graph
-
-# Now visualize the graph with the enhanced visualization function
-
-# Assuming the `graph` object is already created
-visualize_enhanced_graph(graph)
+main(sas_file_path)
