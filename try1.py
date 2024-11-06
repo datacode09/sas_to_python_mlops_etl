@@ -466,6 +466,78 @@ def sel_var_full(input_df, list_df, ind, output_name="output"):
 # output_df = sel_var_full(input_df, list_df, ind=1)
 # print(output_df)
 
+import pandas as pd
+
+def excl_list(df):
+    """
+    Exclude records based on specified conditions, equivalent to the `%excl_list` macro in SAS.
+
+    Parameters:
+    - df (pd.DataFrame): The input DataFrame to apply exclusions.
+
+    Returns:
+    - pd.DataFrame: The filtered DataFrame.
+    """
+    # Apply the conditions for exclusion
+    df = df[df['Incl1'] == 1]
+    df = df[df['LVL1_RPT_BOD_NM'] != 'WEALTH MANAGEMENT']
+    df = df[df['LVL3_RPT_BOD_NM'] != 'PC-US FINANCIAL INSTITUTIONS']
+    df = df[~df['REL_RSK_RTG_MODL_CD'].isin(['AVERMEDIA', 'HEALTHCM', 'HEALTHUS'])]
+    
+    return df
+
+# # Example usage
+# # Assuming `data` is a DataFrame containing the columns `Incl1`, `LVL1_RPT_BOD_NM`, `LVL3_RPT_BOD_NM`, and `REL_RSK_RTG_MODL_CD`
+# data = pd.DataFrame({
+#     'Incl1': [1, 0, 1],
+#     'LVL1_RPT_BOD_NM': ['WEALTH MANAGEMENT', 'OTHER', 'OTHER'],
+#     'LVL3_RPT_BOD_NM': ['PC-US FINANCIAL INSTITUTIONS', 'OTHER', 'OTHER'],
+#     'REL_RSK_RTG_MODL_CD': ['AVERMEDIA', 'OTHER', 'HEALTHCM']
+# })
+
+# filtered_data = excl_list(data)
+# print(filtered_data)
+
+def model_excl(df):
+    """
+    Exclude records based on `TRN` value and then apply `excl_list` exclusions.
+
+    Parameters:
+    - df (pd.DataFrame): The input DataFrame.
+
+    Returns:
+    - pd.DataFrame: The filtered DataFrame.
+    """
+    # Exclude records where TRN is not 1
+    df = df[df['TRN'] == 1]
+    
+    # Apply excl_list exclusions
+    df = excl_list(df)
+    
+    return df
+
+# # Example usage
+# data['TRN'] = [1, 0, 1]
+# filtered_data = model_excl(data)
+# print(filtered_data)
+
+def seg_ind_none(df):
+    """
+    Applies exclusions equivalent to `%seg_ind_none` by calling `excl_list`.
+
+    Parameters:
+    - df (pd.DataFrame): The input DataFrame.
+
+    Returns:
+    - pd.DataFrame: The filtered DataFrame.
+    """
+    return excl_list(df)
+
+# # Example usage
+# filtered_data_none = seg_ind_none(data)
+# print(filtered_data_none)
+
+
 
 # 3. Processing Steps
 
