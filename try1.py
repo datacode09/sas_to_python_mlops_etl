@@ -161,6 +161,9 @@ def config():
             "hvr_input": load_hvr_input(),
             "MSTR_SCL": load_mstr_scl(),
             "cust_gen_scoreout": load_module_scoreout("cust_gen"),
+             "rel": ["prc_sct_dft_cst", "prc_seg_dft_cst", "prc_reg_dft_cst", "prc_sct_bd_cst", "prc_seg_bd_cst", "prc_reg_bd_cst"],
+             "abs": ["bad_customer", "default_customer", "n_sct_dft_cst", "n_seg_dft_cst", "n_reg_dft_cst", "n_sct_bd_cst", "n_seg_bd_cst", "n_reg_bd_cst"],
+             "coal": ["bad_customer", "default_customer", "prc_sct_dft_cst", "prc_seg_dft_cst", "prc_reg_dft_cst", "prc_sct_bd_cst", "prc_seg_bd_cst", "prc_reg_bd_cst", "n_sct_dft_cst", "n_seg_dft_cst", "n_reg_dft_cst", "n_sct_bd_cst", "n_seg_bd_cst", "n_reg_bd_cst"]
             "opacct_scoreout": load_module_scoreout("opacct"),
             "fin_scoreout": load_module_scoreout("fin"),
             "loan_scoreout": load_module_scoreout("loan"),
