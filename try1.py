@@ -91,13 +91,7 @@ def load_mstr_scl():
         raise
 
 
-def load_module_scoreout(module_name):
-    try:
-        logging.info("Loading module scoreout data for %s.", module_name)
-        return pd.DataFrame()  # Example placeholder
-    except Exception as e:
-        logging.error("Failed to load module scoreout data for %s: %s", module_name, e)
-        raise
+
 
 def woe_code_hvr(df):
     try:
@@ -107,6 +101,21 @@ def woe_code_hvr(df):
     except Exception as e:
         logging.error("Failed to apply WOE code transformations: %s", e)
         raise
+
+
+
+def load_cust_gen():
+    try:
+        logging.info("Loading cust_gen data.")
+        # Replace with actual logic to load the fn_entity DataFrame
+        return pd.DataFrame()  # Example placeholder
+    except Exception as e:
+        logging.error("Failed to load fn_entity data: %s", e)
+        raise
+
+
+
+
 
 # 2. Configuration Function to Gather Inputs
 
@@ -139,6 +148,10 @@ def config():
         "hvr_input": load_hvr_input(),
         "MSTR_SCL": load_mstr_scl(),
         "cust_gen_scoreout": load_module_scoreout("cust_gen"),
+         "cust_gen_input": load_cust_gen(),
+             "rel": ["prc_sct_dft_cst", "prc_seg_dft_cst", "prc_reg_dft_cst", "prc_sct_bd_cst", "prc_seg_bd_cst", "prc_reg_bd_cst"],
+             "abs": ["bad_customer", "default_customer", "n_sct_dft_cst", "n_seg_dft_cst", "n_reg_dft_cst", "n_sct_bd_cst", "n_seg_bd_cst", "n_reg_bd_cst"],
+             "coal": ["bad_customer", "default_customer", "prc_sct_dft_cst", "prc_seg_dft_cst", "prc_reg_dft_cst", "prc_sct_bd_cst", "prc_seg_bd_cst", "prc_reg_bd_cst", "n_sct_dft_cst", "n_seg_dft_cst", "n_reg_dft_cst", "n_sct_bd_cst", "n_seg_bd_cst", "n_reg_bd_cst"]
         "opacct_scoreout": load_module_scoreout("opacct"),
         "fin_scoreout": load_module_scoreout("fin"),
         "loan_scoreout": load_module_scoreout("loan"),
@@ -152,33 +165,6 @@ def config():
     }
     return config_data
 
-
-def config():
-    logging.info("Configuring inputs.")
-    try:
-        config_data = {
-            "fn_entity": load_fn_entity(),
-            "hvr_input": load_hvr_input(),
-            "MSTR_SCL": load_mstr_scl(),
-            "cust_gen_scoreout": load_module_scoreout("cust_gen"),
-             "rel": ["prc_sct_dft_cst", "prc_seg_dft_cst", "prc_reg_dft_cst", "prc_sct_bd_cst", "prc_seg_bd_cst", "prc_reg_bd_cst"],
-             "abs": ["bad_customer", "default_customer", "n_sct_dft_cst", "n_seg_dft_cst", "n_reg_dft_cst", "n_sct_bd_cst", "n_seg_bd_cst", "n_reg_bd_cst"],
-             "coal": ["bad_customer", "default_customer", "prc_sct_dft_cst", "prc_seg_dft_cst", "prc_reg_dft_cst", "prc_sct_bd_cst", "prc_seg_bd_cst", "prc_reg_bd_cst", "n_sct_dft_cst", "n_seg_dft_cst", "n_reg_dft_cst", "n_sct_bd_cst", "n_seg_bd_cst", "n_reg_bd_cst"]
-            "opacct_scoreout": load_module_scoreout("opacct"),
-            "fin_scoreout": load_module_scoreout("fin"),
-            "loan_scoreout": load_module_scoreout("loan"),
-            "rev_scoreout": load_module_scoreout("rev"),
-            "str": "2024-01-01",
-            "end": "2024-12-31",
-            "woe_code_hvr": woe_code_hvr,
-            "target_score": 200,
-            "target_odds": 50,
-            "pts_double_odds": 20
-        }
-        return config_data
-    except Exception as e:
-        logging.error("Failed to configure inputs: %s", e)
-        raise
 
 # 2. Macro-like Functions for Processing Steps
 
