@@ -262,13 +262,50 @@ def merge_macro(input1, input2, var, var_rename, keyA, keyB):
 
 
 
-def dupu_en(data):
+import pandas as pd
+import logging
+
+def dupu_en(datain):
+    """
+    Simulates the `%dupuen` macro in SAS, which performs deduplication with specific sorting criteria.
+
+    Parameters:
+    - datain (pd.DataFrame): The input DataFrame to be deduplicated.
+
+    Returns:
+    - pd.DataFrame: The deduplicated DataFrame.
+    """
     try:
-        logging.info("Removing duplicates.")
-        return data.drop_duplicates()
+        logging.info("Starting dupu_en processing.")
+
+        # Step 1: Copy input to avoid modifying the original DataFrame
+        data_temp = datain.copy()
+
+        # Step 2: Define `time_dim_key` and `rr`
+        data_temp['time_dim_key'] = data_temp['RPT_PRD_END_DT']
+        # Note: `rr` is skipped here as it’s commented out in the SAS code.
+        # data_temp['rr'] = data_temp['grade_0']  # Uncomment if `rr` logic is needed
+
+        # Step 3: Sort by `rel_uen`, `time_dim_key` in descending order of `rr`
+        # If `rr` is required in future, uncomment and include it in sort order
+        data_temp = data_temp.sort_values(by=['rel_uen', 'time_dim_key'], ascending=[True, False])
+
+        # Step 4: Deduplicate by `rel_uen` and `time_dim_key`
+        # This removes duplicates based on `rel_uen` and `time_dim_key`, keeping the first occurrence
+        data_temp = data_temp.drop_duplicates(subset=['rel_uen', 'time_dim_key'])
+
+        # Step 5: Drop `rr` and `time_dim_key` columns from the final output
+        # Adjust as per requirements if `rr` needs to be calculated and kept
+        data_temp = data_temp.drop(columns=['time_dim_key'], errors='ignore')
+
+        logging.info("Completed dupu_en processing.")
+
+        return data_temp
+
     except Exception as e:
-        logging.error("Failed during dupu_en: %s", e)
+        logging.error("Error in dupu_en: %s", e)
         raise
+
 
 def portfolio_CI(data):
     try:
