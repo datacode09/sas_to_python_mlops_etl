@@ -389,6 +389,84 @@ def cal_score(datain, predict_col, score_col, target_score=200, target_odds=50, 
         logging.error("Error in cal_score: %s", e)
         raise
 
+
+import pandas as pd
+import numpy as np
+import logging
+
+def sel_var_full(input_df, list_df, ind, output_name="output"):
+    """
+    Translates the SAS macro `sel_var_full` to Python, performing a set of transformations and calculations.
+
+    Parameters:
+    - input_df (pd.DataFrame): The input DataFrame to use for calculations.
+    - list_df (pd.DataFrame): The list DataFrame to filter and transpose.
+    - ind (int): The index to filter on in `list_df`.
+    - output_name (str): The name of the output DataFrame.
+
+    Returns:
+    - pd.DataFrame: The transformed DataFrame with calculated predictions.
+    """
+    try:
+        logging.info("Starting sel_var_full processing.")
+
+        # Step 1: Filter `list_df` where `ind` matches
+        tmp_lst = list_df[list_df['ind'] == ind][['Estimate']]
+
+        # Step 2: Transpose `tmp_lst`
+        tmp_lst_trns = tmp_lst.T
+        tmp_lst_trns.columns = [f"var{i+1}" for i in range(tmp_lst_trns.shape[1])]
+
+        # Step 3: Dynamically create columns with parameter values
+        cnt = tmp_lst.shape[0]  # Number of matching records
+        prm_columns = [f"prm{i+1}" for i in range(cnt)]
+
+        # Flatten transposed values to use as parameters
+        params = tmp_lst_trns.iloc[0].values  # Array of parameter values
+
+        # Step 4: Calculate logistic regression (logit) and predictions
+        # Start with a zeroed-out logit
+        input_df['logit'] = 0
+
+        # For each parameter, add the respective transformation to the logit
+        for i in range(cnt):
+            input_df['logit'] += params[i] * input_df[f"var{i+1}"]
+
+        # Calculate predicted probability using logistic function
+        input_df['predict'] = 1 / (1 + np.exp(-input_df['logit']))
+        input_df = input_df.rename(columns={'predict': 'predict1'})
+
+        # Optional: Drop intermediate columns (logit, var1, var2, etc.) if desired
+        input_df.drop(columns=['logit'], inplace=True)
+
+        logging.info("Completed sel_var_full processing.")
+        
+        # Rename output for clarity
+        globals()[output_name] = input_df
+        return input_df
+
+    except Exception as e:
+        logging.error("Error in sel_var_full: %s", e)
+        raise
+
+# # Example usage
+# # Sample `input_df` with placeholder values for `var1`, `var2`, etc.
+# input_df = pd.DataFrame({
+#     'var1': [0.5, 0.7, 0.9],
+#     'var2': [1.2, 0.8, 1.0]
+# })
+
+# # Sample `list_df` with `Estimate` and `ind` columns
+# list_df = pd.DataFrame({
+#     'Estimate': [0.3, 0.6],
+#     'ind': [1, 1]
+# })
+
+# # Call the function with example data
+# output_df = sel_var_full(input_df, list_df, ind=1)
+# print(output_df)
+
+
 # 3. Processing Steps
 
 def filter_entity_data(data, start_date, end_date):
