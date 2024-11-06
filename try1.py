@@ -103,6 +103,49 @@ def woe_code_hvr(df):
 
 # 2. Configuration Function to Gather Inputs
 
+from datetime import datetime, timedelta
+import pandas as pd
+
+# Calculate the start and end dates similarly to the SAS code
+def calculate_str_end_dates():
+    today = datetime.today()
+    
+    # Calculate the start date (3 months before the current month, first day of that month)
+    str_date = (today.replace(day=1) - pd.DateOffset(months=3)).strftime('%Y-%m-%d')
+    
+    # Calculate the end date (1 month before the current month, last day of that month)
+    last_day_of_prev_month = (today.replace(day=1) - timedelta(days=1))
+    end_date = last_day_of_prev_month.strftime('%Y-%m-%d')
+    
+    return str_date, end_date
+
+# Updated config function with dynamically calculated `str` and `end` dates
+def config():
+    """
+    Configures and loads all necessary inputs for processing, with dynamically calculated `str` and `end` dates.
+    """
+    # Calculate dynamic start and end dates
+    str_date, end_date = calculate_str_end_dates()
+    
+    config_data = {
+        "fn_entity": load_fn_entity(),
+        "hvr_input": load_hvr_input(),
+        "MSTR_SCL": load_mstr_scl(),
+        "cust_gen_scoreout": load_module_scoreout("cust_gen"),
+        "opacct_scoreout": load_module_scoreout("opacct"),
+        "fin_scoreout": load_module_scoreout("fin"),
+        "loan_scoreout": load_module_scoreout("loan"),
+        "rev_scoreout": load_module_scoreout("rev"),
+        "str": str_date,  # Dynamically calculated start date
+        "end": end_date,  # Dynamically calculated end date
+        "woe_code_hvr": woe_code_hvr,  # Function for WOE transformation
+        "target_score": 200,
+        "target_odds": 50,
+        "pts_double_odds": 20
+    }
+    return config_data
+
+
 def config():
     logging.info("Configuring inputs.")
     try:
