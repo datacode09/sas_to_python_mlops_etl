@@ -353,13 +353,40 @@ def calpred_cmbn(data, mod_list):
         logging.error("Failed during calpred_cmbn: %s", e)
         raise
 
-def cal_score(data, target_score, target_odds, pts_double_odds):
+import pandas as pd
+import numpy as np
+import logging
+
+def cal_score(datain, predict_col, score_col, target_score=200, target_odds=50, pts_double_odds=20):
+    """
+    Calculates the score based on the predicted probability.
+
+    Parameters:
+    - datain (pd.DataFrame): Input DataFrame containing the prediction column.
+    - predict_col (str): Column name containing the predicted probability.
+    - score_col (str): Name of the output column for the calculated score.
+    - target_score (float): Target score value (default 200).
+    - target_odds (float): Target odds value (default 50).
+    - pts_double_odds (float): Points to double the odds (default 20).
+
+    Returns:
+    - pd.DataFrame: DataFrame with the new score column.
+    """
     try:
-        logging.info("Calculating scaled score.")
-        data['intg_score'] = data['pred1'] * target_score / (target_score + target_odds + pts_double_odds)
-        return data
+        logging.info("Calculating scores based on the predicted probability.")
+
+        # Calculate factor and offset based on the given parameters
+        factor = pts_double_odds / np.log(2)
+        offset = target_score - factor * np.log(target_odds)
+
+        # Calculate the score
+        datain[score_col] = offset + factor * np.log((1 - datain[predict_col]) / datain[predict_col])
+
+        logging.info("Score calculation completed successfully.")
+        return datain
+
     except Exception as e:
-        logging.error("Failed during cal_score: %s", e)
+        logging.error("Error in cal_score: %s", e)
         raise
 
 # 3. Processing Steps
