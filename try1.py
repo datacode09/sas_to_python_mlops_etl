@@ -25,6 +25,57 @@ def load_hvr_input():
         logging.error("Failed to load hvr_input data: %s", e)
         raise
 
+import pandas as pd
+import numpy as np
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def load_hvr_input(file_path):
+    try:
+        # Log the start of the process
+        logger.info("Starting to load HVR input from SAS file.")
+
+        # Read the SAS file into a pandas DataFrame
+        hvr_input = pd.read_sas(file_path, format='sas7bdat')
+        logger.info("Successfully read SAS file: %s", file_path)
+
+        # Create a copy of the input DataFrame to avoid modifying the original data
+        hvr_arm = hvr_input.copy()
+
+        # Initialize the columns for grouped and WOE values
+        hvr_arm['GRP_cg6nUR'] = np.nan
+        hvr_arm['WOE_cg6nUR'] = np.nan
+        logger.info("Initialized GRP_cg6nUR and WOE_cg6nUR columns.")
+
+        # Apply the grouping and WOE assignment logic
+        hvr_arm['GRP_cg6nUR'] = np.where(hvr_arm['cg6nUR'].isna(), 5, hvr_arm['GRP_cg6nUR'])
+        hvr_arm['WOE_cg6nUR'] = np.where(hvr_arm['cg6nUR'].isna(), -2.264105048, hvr_arm['WOE_cg6nUR'])
+
+        hvr_arm.loc[hvr_arm['cg6nUR'] <= -0.81, ['GRP_cg6nUR', 'WOE_cg6nUR']] = [1, 0.6333727575]
+        hvr_arm.loc[(hvr_arm['cg6nUR'] > -0.81) & (hvr_arm['cg6nUR'] <= -0.29), ['GRP_cg6nUR', 'WOE_cg6nUR']] = [2, 0.4320581244]
+        hvr_arm.loc[(hvr_arm['cg6nUR'] > -0.29) & (hvr_arm['cg6nUR'] <= -0.21), ['GRP_cg6nUR', 'WOE_cg6nUR']] = [3, 0.311526073]
+        hvr_arm.loc[hvr_arm['cg6nUR'] > -0.21, ['GRP_cg6nUR', 'WOE_cg6nUR']] = [4, -0.123880095]
+
+        # Log the completion of the grouping and WOE logic
+        logger.info("Grouping and WOE assignment logic applied successfully.")
+
+        # Return the modified DataFrame
+        return hvr_arm
+
+    except FileNotFoundError:
+        logger.error("File not found: %s", file_path)
+        raise
+    except pd.errors.EmptyDataError:
+        logger.error("The SAS file is empty: %s", file_path)
+        raise
+    except Exception as e:
+        logger.error("An error occurred while loading or processing the file: %s", str(e))
+        raise
+
+
 def load_mstr_scl():
     try:
         logging.info("Loading MSTR_SCL data.")
