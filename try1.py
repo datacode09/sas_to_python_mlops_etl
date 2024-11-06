@@ -218,6 +218,50 @@ def merge_macro(input1, input2, var, var_rename, keyA, keyB):
         logging.error("Error in merge_macro: %s", e)
         raise
 
+import pandas as pd
+import pandasql as ps
+import logging
+
+def merge_macro(input1, input2, var, var_rename, keyA, keyB):
+    """
+    Performs a left join between two DataFrames using SQL syntax, similar to the SAS merge_macro.
+    
+    Parameters:
+    - input1 (pd.DataFrame): Left DataFrame.
+    - input2 (pd.DataFrame): Right DataFrame.
+    - var (str): Column name in input2 to select and rename.
+    - var_rename (str): New column name for the selected variable.
+    - keyA (str): Join key column name in input1.
+    - keyB (str): Join key column name in input2.
+    
+    Returns:
+    - pd.DataFrame: The resulting DataFrame after the left join.
+    """
+    try:
+        logging.info("Performing SQL-based left join using merge_macro.")
+        
+        # Renaming columns in input2 to avoid conflicts in SQL
+        input2 = input2.rename(columns={var: var_rename})
+
+        # SQL query for the left join
+        query = f"""
+        SELECT a.*, b.{var_rename}
+        FROM input1 a
+        LEFT JOIN input2 b
+        ON a.{keyA} = b.{keyB}
+        """
+        
+        # Execute the SQL query
+        result = ps.sqldf(query, locals())
+        
+        return result
+    
+    except Exception as e:
+        logging.error("Error in merge_macro: %s", e)
+        raise
+
+
+
 def dupu_en(data):
     try:
         logging.info("Removing duplicates.")
