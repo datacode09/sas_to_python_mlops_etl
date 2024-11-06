@@ -419,6 +419,7 @@ def assign_piece(data):
 def main_pipeline():
     try:
         logging.info("Starting main pipeline.")
+        
         # Load configuration and inputs
         cfg = config()
         
@@ -426,36 +427,43 @@ def main_pipeline():
         all_out_time1 = filter_entity_data(cfg["fn_entity"], cfg["str"], cfg["end"])
         
         # Step 2: Load HVR Data and Apply WOE Logic
-        hvr_arm = load_hvr_data(cfg["hvr_input"], cfg["woe_code_hvr"])
+        hvr_arm = load_hvr_data(cfg["hvr_input"], cfg["apply_woe_transformation"])
         
         # Step 3: Merge HVR and Entity Data
         all_out_time = merge_hvr_and_entity(all_out_time1, hvr_arm)
         
         # Step 4: Merge with MSTR_SCL and Assign Grades
-        all_out_time2 = merge_macro(all_out_time, cfg["MSTR_SCL"], "MSTR_SCL_RTG_CD", "grade", "grade_0")
+        all_out_time2 = merge_macro(all_out_time, cfg["MSTR_SCL"], "grade", "grade_0", "MSTR_SCL_RTG_CD", "MSTR_SCL_RTG_CD")
         
         # Step 5: Filter Based on Portfolio CI and Deduplicate
-        scoreout = portfolio_CI(all_out_time2)
-        scoreout = dupu_en(scoreout)
+        # Apply initial filter for ACTV_BRWR_IND == 'Y'
+        all_out_time2 = all_out_time2[all_out_time2['ACTV_BRWR_IND'] == 'Y']
         
-        # Step 6: Apply Additional Scoring Filters
-        scoreout = scoreout[(scoreout['ACTV_BRWR_IND'] == 'Y') & (scoreout['grade_0'] <= 11)]
-        
-        # Step 7: Combine Module Scores
-        scoreout = calpred_cmbn(scoreout, mod_list=["cust_gen", "op_acct", "fin", "loan", "rev"])
-        
-        # Step 8: Assign Pieces for Combined Predictions
-        scoreout = assign_piece(scoreout)
-        
-        # Step 9: Final Integrated Score Calculation
-        scoreout['pred1'] = 1 / (1 + np.exp(-scoreout['pred']))
-        final_score = cal_score(scoreout, cfg["target_score"], cfg["target_odds"], cfg["pts_double_odds"])
+        # Apply deduplication using dupu_en function (equivalent to `%dupuen`)
+        all_out_time2 = dupu_en(all_out_time2)
+
+        # Create `scoreout` dataset with portfolio CI and additional filters
+        scoreout = portfolio_CI(all_out_time2)  # Apply portfolio CI function
+
+        # Apply additional filters and `incl1` logic
+        scoreout['incl1'] = scoreout['grade_0'].apply(lambda x: 0 if x > 11 else 1)
+        scoreout = scoreout[(scoreout['CI'] != 0) &  # CI should not be zero
+                            (~scoreout['grade_0'].isna())]  # Remove rows where grade_0 is NaN
+
+        # Step 6: Final Deduplication for Scoreout
+        scoreout = dupu_en(scoreout)  # Deduplicate `scoreout` to ensure clean final data
         
         logging.info("Pipeline completed successfully.")
-        return final_score
+        
+        return scoreout
+
     except Exception as e:
         logging.error("Failed in main pipeline: %s", e)
         raise
 
 # Run the pipeline
 final_result = main_pipeline()
+print(final_result)
+
+
+
