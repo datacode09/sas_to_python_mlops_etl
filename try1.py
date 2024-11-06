@@ -172,12 +172,36 @@ def config():
 
 # 2. Macro-like Functions for Processing Steps
 
-def merge_macro(data, mstr_scl, key_col, grade_col, output_col):
+import pandas as pd
+
+def merge_macro(input1, input2, var, var_rename, keyA, keyB):
+    """
+    Simulates the merge_macro in SAS. Performs a left join between input1 and input2 on specified keys.
+    
+    Parameters:
+    - input1 (pd.DataFrame): Left DataFrame.
+    - input2 (pd.DataFrame): Right DataFrame.
+    - var (str): Column name in input2 to select and rename.
+    - var_rename (str): New column name for the selected variable.
+    - keyA (str): Join key column name in input1.
+    - keyB (str): Join key column name in input2.
+    
+    Returns:
+    - pd.DataFrame: The resulting DataFrame after the left join.
+    """
     try:
-        logging.info("Merging macro with grading info.")
-        return pd.merge(data, mstr_scl[[key_col, grade_col]], left_on=key_col, right_on=grade_col, how="left")
+        # Select only the required column from input2 and rename it
+        input2_renamed = input2[[keyB, var]].rename(columns={var: var_rename})
+        
+        # Perform the left join on the specified keys
+        result = pd.merge(input1, input2_renamed, left_on=keyA, right_on=keyB, how="left")
+        
+        # Drop the duplicate key column from input2 after the join
+        result = result.drop(columns=[keyB])
+        
+        return result
     except Exception as e:
-        logging.error("Failed during merge_macro: %s", e)
+        logging.error("Error in merge_macro: %s", e)
         raise
 
 def dupu_en(data):
