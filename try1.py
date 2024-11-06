@@ -76,13 +76,27 @@ def load_hvr_input(file_path):
         raise
 
 
+import pandas as pd
+
 def load_mstr_scl():
+    """
+    Loads the MSTR_SCL data as a DataFrame, replicating the SAS datalines block.
+    """
+    logging.info("Loading MSTR_SCL data.")
     try:
-        logging.info("Loading MSTR_SCL data.")
-        return pd.DataFrame()  # Example placeholder
+        data = {
+            "MSTR_SCL_RTG_CD": ["I-1", "I-2", "I-3", "I-4", "I-5", "I-6", "I-7", "I-8",
+                                "S-3", "S-4", "S-1", "S-2", "P-1", "P-2", "P-3", "T-1",
+                                "D-1", "D-2", "D-3", "D-4"],
+            "grade": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        }
+        MSTR_SCL = pd.DataFrame(data)
+        logging.info("MSTR_SCL data loaded successfully.")
+        return MSTR_SCL
     except Exception as e:
         logging.error("Failed to load MSTR_SCL data: %s", e)
         raise
+
 
 def load_module_scoreout(module_name):
     try:
