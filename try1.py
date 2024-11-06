@@ -307,12 +307,48 @@ def dupu_en(datain):
         raise
 
 
-def portfolio_CI(data):
+def portfolio_CI(df):
+    """
+    Simulates the `%portfolio_CI` macro in SAS by applying conditional logic to set the `CI` column.
+
+    Parameters:
+    - df (pd.DataFrame): The DataFrame to which the CI logic will be applied.
+
+    Returns:
+    - pd.DataFrame: The DataFrame with the `CI` column added.
+    """
     try:
-        logging.info("Applying portfolio CI filter.")
-        return data[data['CI'] != 0]
+        logging.info("Applying portfolio_CI logic.")
+        
+        # Define the conditions for setting CI to 1
+        lvl1_conditions = [
+            'BMO CAPITAL MARKETS',
+            'CANADIAN COMMERCIAL BANKING',
+            'P&C US BUSINESS BANKING',
+            'P&C US COMMERCIAL',
+            'WEALTH MANAGEMENT',
+            'HEALTH MANAGEMENT'
+        ]
+        
+        rel_rsk_conditions = [
+            'GC', 'LC', 'HGC', 'AVREMEDIA', 'HEALTHCM', 'HEALTHUS', 'HPB', 'RELIGIOU'
+        ]
+        
+        # Apply conditional logic to set `CI` column
+        df['CI'] = 0  # Default to 0
+        df.loc[
+            (df['LVL1_RPT_BOD_NM'].isin(lvl1_conditions)) &
+            (df['REL_RSK_RTG_MODL_CD'].isin(rel_rsk_conditions)) &
+            (df['ccb_uen_ind'] == 1),
+            'CI'
+        ] = 1
+        
+        logging.info("portfolio_CI logic applied successfully.")
+        
+        return df
+    
     except Exception as e:
-        logging.error("Failed during portfolio_CI: %s", e)
+        logging.error("Error in portfolio_CI: %s", e)
         raise
 
 def calpred_cmbn(data, mod_list):
