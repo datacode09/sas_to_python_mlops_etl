@@ -25,13 +25,6 @@ def load_hvr_input():
         logging.error("Failed to load hvr_input data: %s", e)
         raise
 
-import pandas as pd
-import numpy as np
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 def load_hvr_input(file_path):
     try:
