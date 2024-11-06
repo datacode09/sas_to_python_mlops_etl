@@ -1,23 +1,50 @@
 import pandas as pd
 import pandasql as ps
+import pandas as pd
 
-# 1. Configuration Function to Gather Inputs
+# 1. Data Loading Functions
+
+def load_fn_entity():
+    # Replace with actual logic to load the fn_entity DataFrame
+    # e.g., pd.read_csv("fn_entity.csv") or pd.read_sql("SELECT * FROM fn_entity", connection)
+    return pd.DataFrame()
+
+def load_hvr_input():
+    # Replace with actual logic to load the hvr_input DataFrame
+    return pd.DataFrame()
+
+def load_mstr_scl():
+    # Replace with actual logic to load the MSTR_SCL DataFrame
+    return pd.DataFrame()
+
+def load_module_scoreout(module_name):
+    # Replace with logic to load specific module scoreout files
+    # This could be a dynamic file path, SQL query, or a different source
+    # Example: pd.read_csv(f"{module_name}_scoreout.csv")
+    return pd.DataFrame()
+
+def woe_code_hvr(df):
+    # Placeholder for WOE transformation logic
+    return df
+
+# 2. Configuration Function to Gather Inputs
+
 def config():
     """
     Configures and loads all necessary inputs for processing.
     """
     config_data = {
-        "fn_entity": pd.DataFrame(),  # Load your fn_entity DataFrame here
-        "hvr_input": pd.DataFrame(),  # Load your hvr_input DataFrame here
-        "MSTR_SCL": pd.DataFrame(),  # Load your MSTR_SCL DataFrame here
-        "cust_gen_scoreout": pd.DataFrame(),  # Load module-specific scoreouts here
-        "opacct_scoreout": pd.DataFrame(),
-        "fin_scoreout": pd.DataFrame(),
-        "loan_scoreout": pd.DataFrame(),
-        "rev_scoreout": pd.DataFrame(),
+        "fn_entity": load_fn_entity(),
+        "hvr_input": load_hvr_input(),
+        "MSTR_SCL": load_mstr_scl(),
+        "cust_gen_scoreout": load_module_scoreout("cust_gen"),
+        "opacct_scoreout": load_module_scoreout("opacct"),
+        "fin_scoreout": load_module_scoreout("fin"),
+        "loan_scoreout": load_module_scoreout("loan"),
+        "rev_scoreout": load_module_scoreout("rev"),
         "str": "2024-01-01",  # Set start date for filtering
         "end": "2024-12-31",  # Set end date for filtering
-        "woe_code_hvr": lambda df: df,  # Placeholder for WOE transformation logic
+        "woe_code_hvr": woe_code_hvr,  # Function for WOE transformation
         "target_score": 200,
         "target_odds": 50,
         "pts_double_odds": 20
