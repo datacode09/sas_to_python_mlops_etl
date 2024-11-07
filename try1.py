@@ -946,6 +946,89 @@ def create_scoreout_comb(scoreout, cust_gen_scoreout, hvr_scoreout, opacct_score
 #         logging.error("Failed during assign_piece: %s", e)
 #         raise
 
+
+import pandas as pd
+import numpy as np
+
+def process_scoreout_comb(scoreout_comb):
+    """
+    Process scoreout_comb DataFrame to calculate integrated scores based on module combinations and scale final scores.
+    
+    Parameters:
+    - scoreout_comb (pd.DataFrame): Combined scoreout DataFrame after initial joins and processing.
+    
+    Returns:
+    - pd.DataFrame: Final processed DataFrame with integrated and scaled scores.
+    """
+    
+    # Step 1: Calculate integrated scores based on module combinations
+    # Define mod_list and mod_list_name for the first combination
+    mod_list = ['cust_gen_hvr', 'fin']
+    mod_list_name = 'cg_f'
+    
+    # Filter where piece == 1 and apply calpred_cmbn logic (this is a placeholder for the actual implementation)
+    scoreout_comb1 = scoreout_comb[scoreout_comb['piece'] == 1].copy()
+    scoreout_comb1['pred'] = calpred_cmbn(scoreout_comb1, mod_list, mod_list_name)
+    
+    # For piece == 3 and piece == 4, handle specific conditions for 'pred'
+    scoreout_comb1_piece3 = scoreout_comb[scoreout_comb['piece'] == 3].copy()
+    scoreout_comb1_piece3['pred'] = scoreout_comb1_piece3['pred_cust_gen_hvr'].combine_first(-np.log(1 + 1 / 0.0462))
+    
+    scoreout_comb1_piece4 = scoreout_comb[scoreout_comb['piece'] == 4].copy()
+    scoreout_comb1_piece4['pred'] = scoreout_comb1_piece4['pred_fin']
+    
+    # Concatenate the results for piece 1, 3, and 4 into scoreout_comb1
+    scoreout_comb1 = pd.concat([scoreout_comb1, scoreout_comb1_piece3, scoreout_comb1_piece4], ignore_index=True)
+    
+    # Step 2: Calculate integrated scores based on a different set of modules for piece == 2
+    mod_list = ['X_cg', 'X_fin', 'X_oa', 'X_loan', 'X_rev', 'M_fin', 'M_oa', 'M_loan', 'M_rev']
+    mod_list_name = 'cg_f_oa_l_r'
+    
+    scoreout_comb2 = scoreout_comb[scoreout_comb['piece'] == 2].copy()
+    scoreout_comb2['pred'] = calpred_cmbn2(scoreout_comb2, mod_list, mod_list_name)
+    
+    # Step 3: Combine scoreout_comb1 and scoreout_comb2 into final intg_scoreout
+    intg_scoreout = pd.concat([scoreout_comb1, scoreout_comb2], ignore_index=True)
+    intg_scoreout['pred1'] = 1 / (1 + np.exp(-intg_scoreout['pred']))
+    
+    # Step 4: Scale the score
+    intg_scoreout1 = cal_score(intg_scoreout, 'pred1', 'intg_score', target_score=200, target_odds=50, pts_double_odds=20)
+    
+    return intg_scoreout1
+
+def calpred_cmbn(df, mod_list, mod_list_name):
+    """
+    Placeholder for calpred_cmbn calculation logic.
+    This function should implement the logic of combining predictions based on mod_list.
+    """
+    # Custom logic based on the specific columns in mod_list should be applied here.
+    # Placeholder: Returning mean of specified columns
+    return df[mod_list].mean(axis=1)
+
+def calpred_cmbn2(df, mod_list, mod_list_name):
+    """
+    Placeholder for calpred_cmbn2 calculation logic.
+    This function should implement the logic of combining predictions based on mod_list.
+    """
+    # Custom logic based on the specific columns in mod_list should be applied here.
+    # Placeholder: Returning mean of specified columns
+    return df[mod_list].mean(axis=1)
+
+def cal_score(df, predict_column, score_column, target_score, target_odds, pts_double_odds):
+    """
+    Calculate and scale the score based on provided parameters.
+    """
+    factor = pts_double_odds / np.log(2)
+    offset = target_score - factor * np.log(target_odds)
+    df[score_column] = offset + factor * np.log((1 - df[predict_column]) / df[predict_column])
+    return df
+
+# Example usage
+# Assuming `scoreout_comb` is the DataFrame with the combined scores and necessary columns
+final_scoreout = process_scoreout_comb(scoreout_comb)
+print(final_scoreout)
+
+
 # 4. Main Pipeline
 
 def main_pipeline():
