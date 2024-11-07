@@ -947,8 +947,6 @@ def create_scoreout_comb(scoreout, cust_gen_scoreout, hvr_scoreout, opacct_score
 #         raise
 
 
-import pandas as pd
-import numpy as np
 
 def process_scoreout_comb(scoreout_comb):
     """
@@ -996,32 +994,73 @@ def process_scoreout_comb(scoreout_comb):
     
     return intg_scoreout1
 
-def calpred_cmbn(df, mod_list, mod_list_name):
+def calpred_cmbn(df, mod_list, param_lib, pe_name):
     """
-    Placeholder for calpred_cmbn calculation logic.
-    This function should implement the logic of combining predictions based on mod_list.
-    """
-    # Custom logic based on the specific columns in mod_list should be applied here.
-    # Placeholder: Returning mean of specified columns
-    return df[mod_list].mean(axis=1)
+    Equivalent to SAS `calpred_cmbn` macro. Calculates predictions using parameters from param_lib.
+    
+    Parameters:
+    - df (pd.DataFrame): Input DataFrame with relevant columns.
+    - mod_list (list of str): List of modules to consider in prediction.
+    - param_lib (pd.DataFrame): DataFrame containing model parameters.
+    - pe_name (str): Name to identify the parameter set in param_lib.
 
-def calpred_cmbn2(df, mod_list, mod_list_name):
+    Returns:
+    - pd.Series: Calculated prediction values.
     """
-    Placeholder for calpred_cmbn2 calculation logic.
-    This function should implement the logic of combining predictions based on mod_list.
-    """
-    # Custom logic based on the specific columns in mod_list should be applied here.
-    # Placeholder: Returning mean of specified columns
-    return df[mod_list].mean(axis=1)
+    # Initialize the prediction with the intercept value
+    intercept = param_lib[(param_lib['pe_name'] == pe_name) & (param_lib['Variable'] == 'Intercept')]['Estimate'].values[0]
+    logit = intercept
 
-def cal_score(df, predict_column, score_column, target_score, target_odds, pts_double_odds):
+    # For each variable in mod_list, add its weighted estimate to the logit
+    for var in mod_list:
+        estimate = param_lib[(param_lib['pe_name'] == pe_name) & (param_lib['Variable'] == f"pred_{var}")]['Estimate'].values[0]
+        logit += df[var] * estimate
+
+    # Calculate and return the predicted value
+    pred = 1 / (1 + np.exp(-logit))
+    return pred
+
+def calpred_cmbn2(df, mod_list, param_lib, pe_name):
     """
-    Calculate and scale the score based on provided parameters.
+    Equivalent to SAS `calpred_cmbn2` macro. Similar to `calpred_cmbn`, but uses a different approach.
+    
+    Parameters:
+    - df (pd.DataFrame): Input DataFrame with relevant columns.
+    - mod_list (list of str): List of modules to consider in prediction.
+    - param_lib (pd.DataFrame): DataFrame containing model parameters.
+    - pe_name (str): Name to identify the parameter set in param_lib.
+
+    Returns:
+    - pd.Series: Calculated prediction values.
     """
-    factor = pts_double_odds / np.log(2)
-    offset = target_score - factor * np.log(target_odds)
-    df[score_column] = offset + factor * np.log((1 - df[predict_column]) / df[predict_column])
-    return df
+    # Initialize the prediction with the intercept value
+    intercept = param_lib[(param_lib['pe_name'] == pe_name) & (param_lib['Variable'] == 'Intercept')]['Estimate'].values[0]
+    logit = intercept
+
+    # For each variable in mod_list, add its weighted estimate to the logit
+    for var in mod_list:
+        estimate = param_lib[(param_lib['pe_name'] == pe_name) & (param_lib['Variable'] == var)]['Estimate'].values[0]
+        logit += df[var] * estimate
+
+    # Calculate and return the predicted value
+    pred = 1 / (1 + np.exp(-logit))
+    return pred
+
+# # Example usage
+# # Assuming `df` is the input DataFrame, `param_lib` contains parameters, and mod_list is defined
+# # Replace `mod_list`, `param_lib`, and `pe_name` with actual values as needed
+# mod_list = ["X_cg", "X_fin", "X_oa", "X_loan", "X_rev"]
+# pe_name = "cg_f"
+# param_lib = pd.DataFrame({
+#     'pe_name': ["cg_f", "cg_f", "cg_f", "cg_f", "cg_f"],
+#     'Variable': ["Intercept", "X_cg", "X_fin", "X_oa", "X_loan"],
+#     'Estimate': [1.5, 0.3, -0.4, 0.2, 0.1]
+# })
+
+# # Calculate predictions
+# df['pred'] = calpred_cmbn(df, mod_list, param_lib, pe_name)
+# df['pred2'] = calpred_cmbn2(df, mod_list, param_lib, pe_name)
+
 
 # Example usage
 # Assuming `scoreout_comb` is the DataFrame with the combined scores and necessary columns
