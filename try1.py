@@ -526,6 +526,87 @@ def seg_ind_none(df):
 # filtered_data_none = seg_ind_none(data)
 # print(filtered_data_none)
 
+import pandas as pd
+import logging
+
+def coall(df, coal_val=18):
+    # Placeholder for coall logic
+    df['coal'] = coal_val
+    return df
+
+def abs_trend(df, var_list):
+    # Placeholder for absolute trend calculation
+    return df
+
+def avg_trend(df, var_list):
+    # Placeholder for average trend calculation
+    return df
+
+def all_out_scorer_no_seg1(scoreout, mod_data, mod):
+    """
+    Translates the `%all_out_scorer_no_seg1` macro to Python.
+
+    Parameters:
+    - scoreout (pd.DataFrame): The `scoreout` DataFrame.
+    - mod_data (pd.DataFrame): Module-specific data.
+    - mod (str): Module name used for dynamic naming.
+
+    Returns:
+    - pd.DataFrame: The final transformed DataFrame with calculated scores.
+    """
+    try:
+        logging.info("Starting all_out_scorer_no_seg1 processing.")
+
+        # Step 1: SQL Join equivalent
+        temp1 = pd.merge(scoreout, mod_data, how='inner', left_on=['RPT_PRD_END_DT', 'rel_uen'], right_on=['RPT_PRD_END_DT', 'uen_ID'])
+        temp1['mod_rel_uen'] = temp1['uen_ID']  # Replicating renaming as `mod_rel_uen`
+
+        # Step 2: Additional transformations on temp1 (apply `seg_ind_none`, `coall`, `abs_trend`, `avg_trend`)
+        temp2 = temp1.copy()
+        temp2 = seg_ind_none(temp2)
+        temp2 = coall(temp2)
+        temp2 = abs_trend(temp2, var_list="&abs_list")  # Placeholder: replace "&abs_list" with actual variable list
+        temp2 = avg_trend(temp2, var_list="&avg_list")  # Placeholder: replace "&avg_list" with actual variable list
+
+        # Step 3: Call sel_var_full
+        temp3 = sel_var_full(temp2, list_df="multi_" + mod, ind="combo_1")
+
+        # Step 4: Calculate score using `cal_score` function
+        tempout = cal_score(temp3, predict_col='predict1', score_col='score', target_score=200, target_odds=50, pts_double_odds=20)
+
+        # Step 5: Final dataset adjustments
+        tempout = tempout.rename(columns={'score': f'score_{mod}', 'predict1': f'predict_{mod}'})
+
+        logging.info("Completed all_out_scorer_no_seg1 processing.")
+        
+        return tempout
+
+    except Exception as e:
+        logging.error("Error in all_out_scorer_no_seg1: %s", e)
+        raise
+
+# # Example usage
+# # Example DataFrames for `scoreout` and `mod_data`
+# scoreout = pd.DataFrame({
+#     'RPT_PRD_END_DT': ['2023-01-01', '2023-01-02'],
+#     'rel_uen': [1, 2],
+#     'predict1': [0.5, 0.6]
+# })
+
+# mod_data = pd.DataFrame({
+#     'RPT_PRD_END_DT': ['2023-01-01', '2023-01-02'],
+#     'uen_ID': [1, 2],
+#     'some_data': [10, 20]
+# })
+
+# # Run the function for a specific module (e.g., "cust_gen")
+# result = all_out_scorer_no_seg1(scoreout, mod_data, mod="cust_gen")
+# print(result)
+
+
+
+
+
 # Function to dynamically rename columns (replaces `%cust_gen_rnm` macro)
 def cust_gen_rnm(df):
     for i in range(1, 19):
