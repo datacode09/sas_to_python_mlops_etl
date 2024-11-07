@@ -526,6 +526,25 @@ def seg_ind_none(df):
 # filtered_data_none = seg_ind_none(data)
 # print(filtered_data_none)
 
+# Function to dynamically rename columns (replaces `%cust_gen_rnm` macro)
+def cust_gen_rnm(df):
+    for i in range(1, 19):
+        df.rename(columns={
+            f'percent_ind_sect_default_cust{i}': f'prc_sct_dft_cst{i}',
+            f'percent_ind_seg_default_cust{i}': f'prc_seg_dft_cst{i}',
+            f'percent_region_default_cust{i}': f'prc_reg_dft_cst{i}',
+            f'percent_ind_sect_bad_cust{i}': f'prc_sct_bd_cst{i}',
+            f'percent_ind_seg_bad_cust{i}': f'prc_seg_bd_cst{i}',
+            f'percent_region_bad_cust{i}': f'prc_reg_bd_cst{i}',
+            f'n_ind_sect_default_cust{i}': f'n_sct_dft_cst{i}',
+            f'n_ind_seg_default_cust{i}': f'n_seg_dft_cst{i}',
+            f'n_region_default_cust{i}': f'n_reg_dft_cst{i}',
+            f'n_ind_sect_bad_cust{i}': f'n_sct_bd_cst{i}',
+            f'n_ind_seg_bad_cust{i}': f'n_seg_bd_cst{i}',
+            f'n_region_bad_cust{i}': f'n_reg_bd_cst{i}'
+        }, inplace=True)
+    return df
+
 
 
 # 3. Processing Steps
@@ -563,6 +582,70 @@ def merge_hvr_and_entity(all_out_time1, hvr_arm):
     except Exception as e:
         logging.error("Failed during merge_hvr_and_entity: %s", e)
         raise
+
+def generate_cust_gen_scoreout(cfg):
+
+    # Step 1: Load and filter `cust_gen_input` by date and rename columns
+    rolledup_customer_information = cfg["cust_gen_scoreout"][
+        (cfg["cust_gen_scoreout"]['rpt_prd_end_dt'] >= cfg["str"]) & 
+        (cfg["cust_gen_scoreout"]['rpt_prd_end_dt'] <= cfg["end"])
+    ].copy()
+    
+    # Rename columns according to SAS code requirements
+    rolledup_customer_information['n_dep_prod'] = rolledup_customer_information['# of deposit product']
+    rolledup_customer_information['n_lend_prod'] = np.nan
+    rolledup_customer_information['Yrs_in_Bus_old'] = np.nan
+    rolledup_customer_information['Yrs_w_Bank_old'] = np.nan
+
+    # Apply dynamic renaming as per `cust_gen_rnm`
+    rolledup_customer_information = cust_gen_rnm(rolledup_customer_information)
+
+    # Step 2: Process `fn_entity` to create `c1`
+    c1 = cfg["fn_entity"][(cfg["fn_entity"]['uen'].notna()) & (cfg["fn_entity"]['ACTV_IND'] == 'Y')].copy()
+    c1['client_id'] = np.where(c1['cctn_uen'].notna(), c1['cctn_uen'], c1['uen'])
+    c1['bad'] = np.where(
+        (c1['mstr_scl_rtg_cd'].str[0].isin(['P', 'T', 'D'])) & (c1['ACTV_BRWR_IND'] == 'Y'), 
+        1, 
+        0
+    )
+    c1 = c1[['rpt_prd_end_dt', 'client_id', 'rel_uen', 'uen', 'bad']]
+
+    # Step 3: Aggregate counts in `c1` to create `c2`
+    c2 = c1[(c1['rpt_prd_end_dt'] >= cfg["str"]) & (c1['rpt_prd_end_dt'] <= cfg["end"])]
+    c2 = c2.groupby(['rpt_prd_end_dt', 'client_id']).agg(
+        Connection_Count=('client_id', 'size'), 
+        Connection_Bad=('bad', 'sum')
+    ).reset_index()
+
+    # Step 4: Deduplicate `c2` to create `countfinal`
+    countfinal = c2.drop_duplicates(subset=['rpt_prd_end_dt', 'client_id'])
+
+    # Step 5: Join `rolledup_customer_information` with `countfinal`
+    rolledup_c1_sort_w_connect4 = rolledup_customer_information.merge(
+        countfinal, left_on=['MONTH_CAPTURED', 'REL_UEN'], right_on=['rpt_prd_end_dt', 'rel_uen'], how='left'
+    )
+    rolledup_c1_sort_w_connect4 = rolledup_c1_sort_w_connect4[
+        (rolledup_c1_sort_w_connect4['MONTH_CAPTURED'] >= cfg["str"]) & 
+        (rolledup_c1_sort_w_connect4['MONTH_CAPTURED'] <= cfg["end"])
+    ]
+
+    # Placeholder for `%all_out_scorer_no_seg1` SAS macro logic
+    # This would include further processing on `rolledup_c1_sort_w_connect4`
+    tmpout = rolledup_c1_sort_w_connect4.copy()
+
+    # Step 6: Set the final output DataFrame with module-specific naming
+    scoreout = tmpout.copy()
+    scoreout.columns = [f"{col}_{cfg['mod']}" if col in ['score', 'predict'] else col for col in scoreout.columns]
+
+    logging.info("Scoreout generation process completed.")
+    
+    return scoreout
+
+
+
+
+
+
 
 def assign_piece(data):
     try:
