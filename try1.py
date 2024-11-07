@@ -68,9 +68,6 @@ def load_hvr_input(file_path):
         logger.error("An error occurred while loading or processing the file: %s", str(e))
         raise
 
-
-import pandas as pd
-
 def load_mstr_scl():
     """
     Loads the MSTR_SCL data as a DataFrame, replicating the SAS datalines block.
@@ -90,9 +87,6 @@ def load_mstr_scl():
         logging.error("Failed to load MSTR_SCL data: %s", e)
         raise
 
-
-
-
 def woe_code_hvr(df):
     try:
         logging.info("Applying WOE code transformations.")
@@ -101,7 +95,6 @@ def woe_code_hvr(df):
     except Exception as e:
         logging.error("Failed to apply WOE code transformations: %s", e)
         raise
-
 
 
 def load_cust_gen():
@@ -120,7 +113,7 @@ def load_cust_gen():
 # 2. Configuration Function to Gather Inputs
 
 from datetime import datetime, timedelta
-import pandas as pd
+
 
 # Calculate the start and end dates similarly to the SAS code
 def calculate_str_end_dates():
@@ -168,7 +161,6 @@ def config():
 
 # 2. Macro-like Functions for Processing Steps
 
-import pandas as pd
 
 def merge_macro(input1, input2, var, var_rename, keyA, keyB):
     """
@@ -675,71 +667,72 @@ def avg_trend(df, var_list):
 
 # print(data)
 
+import pandas as pd
+import pandasql as ps
 
-
-
-def all_out_scorer_no_seg1(scoreout, mod_data, mod):
+def all_out_scorer_no_seg1(scoreout, mod_data, cfg):
     """
-    Translates the `%all_out_scorer_no_seg1` macro to Python.
-
+    Python equivalent of the `all_out_scorer_no_seg1` SAS macro.
+    
     Parameters:
-    - scoreout (pd.DataFrame): The `scoreout` DataFrame.
-    - mod_data (pd.DataFrame): Module-specific data.
-    - mod (str): Module name used for dynamic naming.
+    - scoreout (pd.DataFrame): Input DataFrame, assumed to be similar to `scoreout` in SAS.
+    - mod_data (pd.DataFrame): The module data to be joined.
+    - cfg (dict): Configuration dictionary containing necessary parameters and lists of variables.
 
     Returns:
-    - pd.DataFrame: The final transformed DataFrame with calculated scores.
+    - pd.DataFrame: The transformed DataFrame with the scoring logic applied.
     """
-    try:
-        logging.info("Starting all_out_scorer_no_seg1 processing.")
+    
+    # Step 1: SQL join to create `temp1` (equivalent to proc sql join in SAS)
+    query = """
+    SELECT a.*, b.uen_ID AS mod_rel_uen, b.*
+    FROM scoreout a
+    INNER JOIN mod_data b ON a.rpt_prd_end_dt = b.rpt_prd_end_dt AND a.rel_uen = b.uen_ID
+    """
+    temp1 = ps.sqldf(query, locals())
 
-        # Step 1: SQL Join equivalent
-        temp1 = pd.merge(scoreout, mod_data, how='inner', left_on=['RPT_PRD_END_DT', 'rel_uen'], right_on=['RPT_PRD_END_DT', 'uen_ID'])
-        temp1['mod_rel_uen'] = temp1['uen_ID']  # Replicating renaming as `mod_rel_uen`
+    # Step 2: Apply macros on `temp1`
+    # Assuming cfg contains 'coal', 'rel', and 'abs' variables
+    temp1 = coall(temp1, cfg["coal"], lag=1)
+    temp1 = trend(temp1, cfg["rel"])
+    temp1 = abs_trend(temp1, cfg["abs"])
+    temp1 = avg_trend(temp1, cfg["abs"])
 
-        # Step 2: Additional transformations on temp1 (apply `seg_ind_none`, `coall`, `abs_trend`, `avg_trend`)
-        temp2 = temp1.copy()
-        temp2 = seg_ind_none(temp2)
-        temp2 = coall(temp2)
-        temp2 = abs_trend(temp2, var_list="&abs_list")  # Placeholder: replace "&abs_list" with actual variable list
-        temp2 = avg_trend(temp2, var_list="&avg_list")  # Placeholder: replace "&avg_list" with actual variable list
+    # Step 3: Include the external WOE code if needed (assuming `woe_code_<mod>` is a function)
+    # This would dynamically call a function or apply transformations specific to WOE code
+    woe_code_func = cfg.get("woe_code_func")
+    if callable(woe_code_func):
+        temp2 = woe_code_func(temp1)
+    else:
+        temp2 = temp1  # If no WOE code is provided, proceed with temp1 as temp2
 
-        # Step 3: Call sel_var_full
-        temp3 = sel_var_full(temp2, list_df="multi_" + mod, ind="combo_1")
+    # Step 4: Apply `sel_var_full` with the list and index (simulating variable selection and renaming)
+    # `multi_<mod>` and `combo_<mod>` need to be defined in cfg or passed separately
+    temp3 = sel_var_full(temp2, cfg["multi_mod"], cfg["combo_mod"])
 
-        # Step 4: Calculate score using `cal_score` function
-        tempout = cal_score(temp3, predict_col='predict1', score_col='score', target_score=200, target_odds=50, pts_double_odds=20)
+    # Step 5: Score calculation (equivalent to `%cal_score` macro in SAS)
+    temp3 = cal_score(temp3, target_score=cfg["target_score"], target_odds=cfg["target_odds"], pts_double_odds=cfg["pts_double_odds"])
 
-        # Step 5: Final dataset adjustments
-        tempout = tempout.rename(columns={'score': f'score_{mod}', 'predict1': f'predict_{mod}'})
+    # Rename the `predict` and `score` fields based on module
+    mod = cfg["mod"]
+    temp3 = temp3.rename(columns={"score": f"score_{mod}", "predict": f"predict_{mod}"})
 
-        logging.info("Completed all_out_scorer_no_seg1 processing.")
-        
-        return tempout
+    # Step 6: Concatenate segments if needed (following `tmpout` structure from SAS)
+    tmpout = temp3.copy()
 
-    except Exception as e:
-        logging.error("Error in all_out_scorer_no_seg1: %s", e)
-        raise
+    return tmpout
 
-# # Example usage
-# # Example DataFrames for `scoreout` and `mod_data`
-# scoreout = pd.DataFrame({
-#     'RPT_PRD_END_DT': ['2023-01-01', '2023-01-02'],
-#     'rel_uen': [1, 2],
-#     'predict1': [0.5, 0.6]
-# })
+# Placeholder function for sel_var_full, assuming it is a column selector/renamer
+def sel_var_full(df, list_var, ind):
+    # Placeholder for the actual logic of sel_var_full
+    # Implement the necessary selection and renaming as per SAS macro logic
+    return df
 
-# mod_data = pd.DataFrame({
-#     'RPT_PRD_END_DT': ['2023-01-01', '2023-01-02'],
-#     'uen_ID': [1, 2],
-#     'some_data': [10, 20]
-# })
-
-# # Run the function for a specific module (e.g., "cust_gen")
-# result = all_out_scorer_no_seg1(scoreout, mod_data, mod="cust_gen")
-# print(result)
-
-
+# Example usage
+# Assume scoreout and mod_data are DataFrames loaded with appropriate data, and `cfg` is defined
+cfg = config()  # Load the configuration
+result_df = all_out_scorer_no_seg1(scoreout, mod_data, cfg)
+print(result_df)
 
 
 
