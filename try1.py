@@ -529,18 +529,154 @@ def seg_ind_none(df):
 import pandas as pd
 import logging
 
-def coall(df, coal_val=18):
-    # Placeholder for coall logic
-    df['coal'] = coal_val
-    return df
-
-def abs_trend(df, var_list):
-    # Placeholder for absolute trend calculation
-    return df
 
 def avg_trend(df, var_list):
     # Placeholder for average trend calculation
     return df
+
+
+def coall(df, var_list, lag):
+    """
+    Python equivalent of the `coall` SAS macro. This function iterates over the `var_list` columns
+    in the `df` DataFrame, creating new columns with values computed based on a lag parameter.
+
+    Parameters:
+    - df (pd.DataFrame): The DataFrame containing the columns.
+    - var_list (list of str): List of column names to process.
+    - lag (int): The lag parameter for the computation.
+
+    Returns:
+    - pd.DataFrame: The DataFrame with added columns based on `coall` logic.
+    """
+    for i, var in enumerate(var_list):
+        if i > 0:
+            # Create a new column by applying the coalesce operation with the lag
+            df[f'{var}_coall'] = df[var].fillna(df[var_list[i - 1]] - lag)
+        else:
+            df[f'{var}_coall'] = df[var]  # First column remains unchanged
+    return df
+
+def trend(df, var_list):
+    """
+    Python equivalent of the `trend` SAS macro. Computes trends based on the `var_list`.
+
+    Parameters:
+    - df (pd.DataFrame): The DataFrame containing the columns.
+    - var_list (list of str): List of column names to process.
+
+    Returns:
+    - pd.DataFrame: The DataFrame with added trend columns based on `trend` logic.
+    """
+    for i, var in enumerate(var_list):
+        if i > 0:
+            # Compute trends using various divisions of consecutive variables
+            if (df[var_list[i - 1]] != 0).all() and (df[var] != 0).all():
+                df[f'm_{var}'] = df[var_list[i - 1]] / df[var]
+            df[f'q_{var}'] = df[var_list[i - 1]] / df[var] if (df[var] != 0).all() else None
+            df[f's_{var}'] = df[var_list[i - 1]] / df[var] if (df[var] != 0).all() else None
+            df[f'y_{var}'] = df[var_list[i - 1]] / df[var] if (df[var] != 0).all() else None
+    return df
+
+def abs_trend(df, var_list):
+    """
+    Python equivalent of the `abs_trend` SAS macro. Computes absolute trends for `var_list`.
+
+    Parameters:
+    - df (pd.DataFrame): The DataFrame containing the columns.
+    - var_list (list of str): List of column names to process.
+
+    Returns:
+    - pd.DataFrame: The DataFrame with added absolute trend columns.
+    """
+    for i, var in enumerate(var_list):
+        if i > 0:
+            # Compute absolute trends using various operations
+            df[f'am_{var}'] = abs(df[var_list[i - 1]] - df[var])
+            df[f'aq_{var}'] = abs(df[var_list[i - 1]] - df[var])
+            df[f'as_{var}'] = abs(df[var_list[i - 1]] - df[var])
+            df[f'ay_{var}'] = abs(df[var_list[i - 1]] - df[var])
+    return df
+
+# # Example usage
+# # Assuming `data` is a DataFrame with columns in `var_list`
+# data = pd.DataFrame({
+#     'var1': [10, 20, 30, 40],
+#     'var2': [15, 25, 35, 45],
+#     'var3': [5, 10, 15, 20]
+# })
+# var_list = ['var1', 'var2', 'var3']
+# lag = 5
+
+# # Applying coall, trend, and abs_trend functions
+# data = coall(data, var_list, lag)
+# data = trend(data, var_list)
+# data = abs_trend(data, var_list)
+
+# print(data)
+
+import pandas as pd
+import numpy as np
+
+def avg_trend(df, var_list):
+    """
+    Python equivalent of the `avg_trend` SAS macro. Computes average, sum, max, and relative changes
+    over 3-month and 6-month periods for columns in `var_list`.
+
+    Parameters:
+    - df (pd.DataFrame): The DataFrame containing the columns.
+    - var_list (list of str): List of column names to process.
+
+    Returns:
+    - pd.DataFrame: The DataFrame with added average trend columns based on `avg_trend` logic.
+    """
+    for var in var_list:
+        # Calculate 3 and 6 month averages
+        df[f'ag3_{var}'] = df[var].shift(1).rolling(window=3).mean()
+        df[f'ag6_{var}'] = df[var].shift(1).rolling(window=6).mean()
+        
+        # Calculate 3 and 6 month sums
+        df[f'sum3_{var}'] = df[var].shift(1).rolling(window=3).sum()
+        df[f'sum6_{var}'] = df[var].shift(1).rolling(window=6).sum()
+        
+        # Calculate 3 and 6 month maximums
+        df[f'max3_{var}'] = df[var].shift(1).rolling(window=3).max()
+        df[f'max6_{var}'] = df[var].shift(1).rolling(window=6).max()
+
+        # Compute relative change compared to same period last year: 3-month and 6-month
+        if df[var].shift(13).notnull().any():
+            df[f'crm3_{var}'] = (df[f'sum3_{var}'] - df[var].shift(13).rolling(window=3).sum()) / df[var].shift(13).rolling(window=3).sum()
+            df[f'crm6_{var}'] = (df[f'sum6_{var}'] - df[var].shift(13).rolling(window=6).sum()) / df[var].shift(13).rolling(window=6).sum()
+            
+            # Handle cases where the rolling sum returns NaN
+            df[f'crm3_{var}'] = df[f'crm3_{var}'].replace([np.inf, -np.inf], np.nan).fillna(0)
+            df[f'crm6_{var}'] = df[f'crm6_{var}'].replace([np.inf, -np.inf], np.nan).fillna(0)
+        
+        # Calculate relative change in average compared to same period last year: 3-month and 6-month
+        if df[var].shift(13).notnull().any():
+            df[f'cr3_{var}'] = (df[f'ag3_{var}'] - df[var].shift(13).rolling(window=3).mean()) / df[var].shift(13).rolling(window=3).mean()
+            df[f'cr6_{var}'] = (df[f'ag6_{var}'] - df[var].shift(13).rolling(window=6).mean()) / df[var].shift(13).rolling(window=6).mean()
+            
+            # Handle cases where the rolling mean returns NaN
+            df[f'cr3_{var}'] = df[f'cr3_{var}'].replace([np.inf, -np.inf], np.nan).fillna(0)
+            df[f'cr6_{var}'] = df[f'cr6_{var}'].replace([np.inf, -np.inf], np.nan).fillna(0)
+    
+    return df
+
+# # Example usage
+# # Assuming `data` is a DataFrame with columns in `var_list`
+# data = pd.DataFrame({
+#     'var1': [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200],
+#     'var2': [5, 15, 25, 35, 45, 55, 65, 75, 85, 95, 105, 115, 125, 135, 145, 155, 165, 175, 185, 195]
+# })
+# var_list = ['var1', 'var2']
+
+# # Apply avg_trend function
+# data = avg_trend(data, var_list)
+
+# print(data)
+
+
+
 
 def all_out_scorer_no_seg1(scoreout, mod_data, mod):
     """
