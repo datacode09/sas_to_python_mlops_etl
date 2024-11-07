@@ -852,26 +852,99 @@ def generate_cust_gen_scoreout(cfg):
     return scoreout
 
 
+import pandas as pd
+import numpy as np
+
+def create_scoreout_comb(scoreout, cust_gen_scoreout, hvr_scoreout, opacct_scoreout, fin_scoreout, loan_scoreout, rev_scoreout):
+    """
+    Equivalent to the SQL join and data processing in the SAS code.
+    
+    Parameters:
+    - scoreout (pd.DataFrame): The main DataFrame with initial scoring data.
+    - cust_gen_scoreout, hvr_scoreout, opacct_scoreout, fin_scoreout, loan_scoreout, rev_scoreout (pd.DataFrame):
+      DataFrames with additional scores for each module.
+
+    Returns:
+    - pd.DataFrame: A combined DataFrame after joins and additional processing.
+    """
+    # Step 1: Perform left joins on `rel_uen` and `rpt_prd_end_dt` columns
+    scoreout_comb = scoreout \
+        .merge(cust_gen_scoreout[['rel_uen', 'rpt_prd_end_dt', 'score', 'predict']], on=['rel_uen', 'rpt_prd_end_dt'], how='left', suffixes=('', '_cust_gen')) \
+        .merge(hvr_scoreout[['rel_uen', 'rpt_prd_end_dt', 'score', 'predict']], on=['rel_uen', 'rpt_prd_end_dt'], how='left', suffixes=('', '_hvr')) \
+        .merge(opacct_scoreout[['rel_uen', 'rpt_prd_end_dt', 'score', 'predict']], on=['rel_uen', 'rpt_prd_end_dt'], how='left', suffixes=('', '_opacct')) \
+        .merge(fin_scoreout[['rel_uen', 'rpt_prd_end_dt', 'score', 'predict']], on=['rel_uen', 'rpt_prd_end_dt'], how='left', suffixes=('', '_fin')) \
+        .merge(loan_scoreout[['rel_uen', 'rpt_prd_end_dt', 'score', 'predict']], on=['rel_uen', 'rpt_prd_end_dt'], how='left', suffixes=('', '_loan')) \
+        .merge(rev_scoreout[['rel_uen', 'rpt_prd_end_dt', 'score', 'predict']], on=['rel_uen', 'rpt_prd_end_dt'], how='left', suffixes=('', '_rev'))
+    
+    # Step 2: Rename prediction columns for clarity
+    scoreout_comb = scoreout_comb.rename(columns={
+        'predict_cust_gen': 'pred_cust_gen_hvr',
+        'predict_opacct': 'pred_op_acct',
+        'predict_fin': 'pred_fin',
+        'predict_loan': 'pred_loan',
+        'predict_rev': 'pred_rev'
+    })
+
+    # Step 3: Define `piece` categories based on prediction column presence
+    conditions = [
+        (scoreout_comb['pred_cust_gen_hvr'].notna() & scoreout_comb['pred_fin'].notna() & 
+         scoreout_comb['pred_op_acct'].isna() & scoreout_comb['pred_loan'].isna() & scoreout_comb['pred_rev'].isna()),
+        
+        (scoreout_comb['pred_op_acct'].notna() | scoreout_comb['pred_loan'].notna() | scoreout_comb['pred_rev'].notna()),
+        
+        (scoreout_comb['pred_cust_gen_hvr'].notna() & scoreout_comb['pred_fin'].isna() & 
+         scoreout_comb['pred_op_acct'].isna() & scoreout_comb['pred_loan'].isna() & scoreout_comb['pred_rev'].isna()),
+        
+        (scoreout_comb['pred_cust_gen_hvr'].isna() & scoreout_comb['pred_fin'].isna() & 
+         scoreout_comb['pred_op_acct'].isna() & scoreout_comb['pred_loan'].isna() & scoreout_comb['pred_rev'].isna())
+    ]
+    choices = [1, 2, 3, 4]
+    scoreout_comb['piece'] = np.select(conditions, choices, default=np.nan)
+
+    # Step 4: Assign values to X_ and M_ columns based on predictions
+    scoreout_comb['X_cg'] = scoreout_comb['pred_cust_gen_hvr'].fillna(0)
+    scoreout_comb['M_cg'] = np.where(scoreout_comb['pred_cust_gen_hvr'].isna(), 1, 0)
+
+    scoreout_comb['X_fin'] = scoreout_comb['pred_fin'].fillna(0)
+    scoreout_comb['M_fin'] = np.where(scoreout_comb['pred_fin'].isna(), 1, 0)
+
+    scoreout_comb['X_oa'] = scoreout_comb['pred_op_acct'].fillna(0)
+    scoreout_comb['M_oa'] = np.where(scoreout_comb['pred_op_acct'].isna(), 1, 0)
+
+    scoreout_comb['X_loan'] = scoreout_comb['pred_loan'].fillna(0)
+    scoreout_comb['M_loan'] = np.where(scoreout_comb['pred_loan'].isna(), 1, 0)
+
+    scoreout_comb['X_rev'] = scoreout_comb['pred_rev'].fillna(0)
+    scoreout_comb['M_rev'] = np.where(scoreout_comb['pred_rev'].isna(), 1, 0)
+
+    return scoreout_comb
+
+# # Example usage
+# # Assuming `scoreout`, `cust_gen_scoreout`, `hvr_scoreout`, `opacct_scoreout`, `fin_scoreout`, `loan_scoreout`, and `rev_scoreout`
+# # are already defined and contain the appropriate data
+
+# result_df = create_scoreout_comb(scoreout, cust_gen_scoreout, hvr_scoreout, opacct_scoreout, fin_scoreout, loan_scoreout, rev_scoreout)
+# print(result_df)
 
 
 
 
 
-def assign_piece(data):
-    try:
-        logging.info("Assigning piece values based on prediction combinations.")
-        conditions = [
-            (~data['pred_cust_gen_hvr'].isnull() & ~data['pred_fin'].isnull() & data['pred_op_acct'].isnull() & data['pred_loan'].isnull() & data['pred_rev'].isnull()),
-            (data['pred_op_acct'].notnull() | data['pred_loan'].notnull() | data['pred_rev'].notnull()),
-            (~data['pred_cust_gen_hvr'].isnull() & data['pred_fin'].isnull() & data['pred_op_acct'].isnull() & data['pred_loan'].isnull() & data['pred_rev'].isnull()),
-            (data['pred_cust_gen_hvr'].isnull() & data['pred_fin'].isnull() & data['pred_op_acct'].isnull() & data['pred_loan'].isnull() & data['pred_rev'].isnull())
-        ]
-        choices = [1, 2, 3, 4]
-        data['piece'] = np.select(conditions, choices, default=np.nan)
-        return data
-    except Exception as e:
-        logging.error("Failed during assign_piece: %s", e)
-        raise
+# def assign_piece(data):
+#     try:
+#         logging.info("Assigning piece values based on prediction combinations.")
+#         conditions = [
+#             (~data['pred_cust_gen_hvr'].isnull() & ~data['pred_fin'].isnull() & data['pred_op_acct'].isnull() & data['pred_loan'].isnull() & data['pred_rev'].isnull()),
+#             (data['pred_op_acct'].notnull() | data['pred_loan'].notnull() | data['pred_rev'].notnull()),
+#             (~data['pred_cust_gen_hvr'].isnull() & data['pred_fin'].isnull() & data['pred_op_acct'].isnull() & data['pred_loan'].isnull() & data['pred_rev'].isnull()),
+#             (data['pred_cust_gen_hvr'].isnull() & data['pred_fin'].isnull() & data['pred_op_acct'].isnull() & data['pred_loan'].isnull() & data['pred_rev'].isnull())
+#         ]
+#         choices = [1, 2, 3, 4]
+#         data['piece'] = np.select(conditions, choices, default=np.nan)
+#         return data
+#     except Exception as e:
+#         logging.error("Failed during assign_piece: %s", e)
+#         raise
 
 # 4. Main Pipeline
 
