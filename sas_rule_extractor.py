@@ -25,16 +25,20 @@ def extract_variable_rules(content):
     current_rules = []
 
     try:
-        for line in content:
+        for i, line in enumerate(content):
+            print(f"Processing line {i+1}: '{line.strip()}'")  # Debugging output to show each line
+
+            # Trim leading/trailing whitespace and check for "Variable:" line
             line = line.strip()
-            if line.startswith("Variable:"):
+            if re.match(r"(?i)^\s*variable\s*:", line):  # Case-insensitive and allows spaces around "Variable:"
                 # Save the previous variable and its rules
                 if current_var is not None:
                     variable_rules[current_var] = current_rules
 
                 # Start a new variable
-                current_var = line.split(":")[1].strip()
+                current_var = line.split(":")[1].strip()  # Extract variable name
                 current_rules = []
+                print(f"Detected new variable: {current_var}")  # Debugging output for detected variables
             elif line:
                 # Collect rule lines for the current variable
                 current_rules.append(line)
@@ -51,8 +55,9 @@ def extract_variable_rules(content):
         return variable_rules
 
     except Exception as e:
-        print(f"An error occurred while extracting variable rules: {e}")
+        print(f"An error occurred while extracting variable rules on line {i+1}: {e}")
         return {}
+
 
 def parse_rule(line):
     """Parse an individual rule line to condition and assignment."""
