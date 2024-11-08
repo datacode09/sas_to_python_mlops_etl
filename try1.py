@@ -755,6 +755,43 @@ def cust_gen_rnm(df):
         }, inplace=True)
     return df
 
+import pandas as pd
+import numpy as np
+
+def op_acct_trans_spec(df):
+    """
+    Equivalent to SAS `op_acct_trans_spec` macro.
+    """
+    df['turnover_to_credit1'] = df[['sum_credit_trans1', 'sum_credit_trans3']].mean(axis=1) / df['balance1'].replace({0: 1})
+    df['turnover_to_credit2'] = df[['sum_credit_trans1', 'sum_credit_trans6']].mean(axis=1) / df['balance2'].replace({0: 1})
+    df['turnover_to_credit3'] = df[['sum_credit_trans1', 'sum_credit_trans9']].mean(axis=1) / df['balance3'].replace({0: 1})
+
+    df['cr_trns_vol1'] = df[['sum_credit_trans1', 'sum_credit_trans3']].max(axis=1) - df[['sum_credit_trans1', 'sum_credit_trans3']].min(axis=1)
+    df['cr_trns_vol2'] = df[['sum_credit_trans1', 'sum_credit_trans6']].max(axis=1) - df[['sum_credit_trans1', 'sum_credit_trans6']].min(axis=1)
+    df['cr_trns_vol3'] = df[['sum_credit_trans1', 'sum_credit_trans9']].max(axis=1) - df[['sum_credit_trans1', 'sum_credit_trans9']].min(axis=1)
+
+    df['distance_to_usage1'] = df['balance1'] / (df[['balance1', 'sum_credit_trans1', 'min_balance1']].max(axis=1) + 0.0001)
+    df['distance_to_usage2'] = df['balance2'] / (df[['balance2', 'sum_credit_trans2', 'min_balance2']].max(axis=1) + 0.0001)
+    df['distance_to_usage3'] = df['balance3'] / (df[['balance3', 'sum_credit_trans3', 'min_balance3']].max(axis=1) + 0.0001)
+    
+    return df
+
+def op_acct_trans_lag(df):
+    """
+    Equivalent to SAS `op_acct_trans_lag` macro.
+    """
+    for i in range(1, 19):
+        df[f'free_limit{i}'] = df[[f'balance{i}', f'limit{i}']].max(axis=1)
+        df[f'shr_f_bggst_cr_trns{i}'] = df[f'free_limit{i}'].fillna(0) / df[f'sum_credit_trans{i}'].replace({0: 1})
+    return df
+
+
+
+# Example usage
+# Assuming `df` is your initial DataFrame with necessary columns and date range defined
+# str_date and end_date need to be defined
+# df = merge_opacct(df)
+# print(df)
 
 
 # 3. Processing Steps
@@ -851,6 +888,17 @@ def generate_cust_gen_scoreout(cfg):
     
     return scoreout
 
+def generate_opacct_scoreout (df):
+    """
+    Main function to merge and process opacct data.
+    """
+    df = op_acct_trans_spec(df)
+    df = op_acct_trans_lag(df)
+    
+    # Filter based on date range (assumes `rpt_prd_end_dt`, `str_date`, and `end_date` are in datetime format)
+    df = df[(df['rpt_prd_end_dt'] >= str_date) & (df['rpt_prd_end_dt'] <= end_date)]
+    
+    return df
 
 import pandas as pd
 import numpy as np
