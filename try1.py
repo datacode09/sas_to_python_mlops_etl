@@ -145,6 +145,23 @@ def config():
              "rel": ["prc_sct_dft_cst", "prc_seg_dft_cst", "prc_reg_dft_cst", "prc_sct_bd_cst", "prc_seg_bd_cst", "prc_reg_bd_cst"],
              "abs": ["bad_customer", "default_customer", "n_sct_dft_cst", "n_seg_dft_cst", "n_reg_dft_cst", "n_sct_bd_cst", "n_seg_bd_cst", "n_reg_bd_cst"],
              "coal": ["bad_customer", "default_customer", "prc_sct_dft_cst", "prc_seg_dft_cst", "prc_reg_dft_cst", "prc_sct_bd_cst", "prc_seg_bd_cst", "prc_reg_bd_cst", "n_sct_dft_cst", "n_seg_dft_cst", "n_reg_dft_cst", "n_sct_bd_cst", "n_seg_bd_cst", "n_reg_bd_cst"]
+        
+        # Define the 'abs' and 'rel' variables lists
+        "abs_opacct": [
+            "balance", "drawdown", "limit", "usagedays", "excessdays", "deposit", "avg_balance", 
+            "deposit_bal", "min_drawdown", "max_drawdown", "avg_drawdown", "min_balance", 
+            "max_balance", "average_balance_dr", "average_balance_cr", "n_credit_trans", 
+            "max_credit_trans", "sum_credit_trans", "n_debit_trans", "max_debit_trans", 
+            "sum_debit_trans", "n_trans", "n_nsf_trans", "n_trans_opic", "n_trans_creditint", 
+            "n_trans_odint", "n_trans_planfee", "n_trans_sonocred", "n_trans_int", 
+            "n_trans_ext", "cash_collected", "OD_DAYS_LTD", "OD_DAYS_MTD", "CrDrN_R", 
+            "CrDrBal_R", "OD_Days_MaxOpen", "OD_MaxAmt_M", "OD_Times_M", "Days_Since_Last_Activity"
+        ],
+        
+        "rel_opacct": [
+            "usage", "avg_usage", "min_usage", "max_usage", "free_limit", "shr_f_bggst_cr_trns"
+        ]
+        
         "opacct_scoreout": load_module_scoreout("opacct"),
         "fin_scoreout": load_module_scoreout("fin"),
         "loan_scoreout": load_module_scoreout("loan"),
