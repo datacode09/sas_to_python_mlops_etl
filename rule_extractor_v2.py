@@ -30,29 +30,37 @@ def create_intermediate_dataset(content):
     print("Intermediate data structure:", json.dumps(intermediate_data, indent=2))  # Debug output
     return intermediate_data
 
+
+import re
+
 def extract_rules_from_section(variable_text):
-    """Extract individual rules from a variable section text."""
+    """Extract individual rules from a SAS variable section text, treating keywords as case-insensitive."""
     rules = []
     capturing_rule = False
     rule_lines = []
 
     for line in variable_text:
         line = line.strip()
-        if line.startswith("LABEL"):
-            # Skip LABEL lines as they are for documentation only
+
+        # Skip LABEL lines as they are for documentation only
+        if re.match(r"^LABEL", line, re.IGNORECASE):
             continue
 
-        if line.startswith("IF"):
-            # Start capturing a new rule block
+        # Start capturing a rule block when we encounter an IF statement with "THEN DO;"
+        if re.match(r"^IF .+ THEN DO;", line, re.IGNORECASE):
             capturing_rule = True
             rule_lines = [line]
+            print(f"Started capturing rule at line: '{line}'")  # Debug output
         elif capturing_rule:
-            # Continue capturing the current rule block until "END;"
+            # Continue capturing lines for the current rule until "END;" is found
             rule_lines.append(line)
-            if "END;" in line:
+            if re.search(r"END;", line, re.IGNORECASE):  # Case-insensitive check for END;
                 capturing_rule = False
                 # Join the lines and add the complete rule to the list
-                rules.append(" ".join(rule_lines))
+                complete_rule = " ".join(rule_lines)
+                rules.append(complete_rule)
+                print(f"Completed rule capture: '{complete_rule}'")  # Debug output
+                rule_lines = []  # Reset for the next rule
 
     print(f"Extracted rules: {rules}")  # Debug output
     return rules
@@ -61,47 +69,11 @@ def process_intermediate_data(intermediate_data):
     """Process each variable in the intermediate dataset to extract rules."""
     variable_rules = {}
     for var, section_text in intermediate_data.items():
-        print(f"Processing variable: '{var}'")
+        print(f"Processing variable: '{var}'")  # Debug output
         rules = extract_rules_from_section(section_text)
         variable_rules[var] = rules
 
     print("Final extracted rules for all variables:", json.dumps(variable_rules, indent=2))  # Debug output
     return variable_rules
 
-# Test content
-test_content = [
-    "* Variable: Accounts_Payable_Days;",
-    "LABEL GRP_Accounts_Payable_Days = 'Grouped: Accounts_Payable_Days';",
-    "LABEL WOE_Accounts_Payable_Days = 'Weight of Evidence: Accounts_Payable_Days';",
-    "IF MISSING(Accounts_Payable_Days) THEN DO;",
-    "    GRP_Accounts_Payable_Days = 5;",
-    "    WOE_Accounts_Payable_Days = -0.38022322927;",
-    "END;",
-    "IF NOT MISSING(Accounts_Payable_Days) THEN DO;",
-    "    IF Accounts_Payable_Days < 5.96 THEN DO;",
-    "        GRP_Accounts_Payable_Days = 1;",
-    "        WOE_Accounts_Payable_Days = 0.1326085862;",
-    "    END;",
-    "END;",
-    "* Variable: Accounts_Payable_Days1;",
-    "LABEL GRP_Accounts_Payable_Days1 = 'Grouped: Accounts_Payable_Days1';",
-    "LABEL WOE_Accounts_Payable_Days1 = 'Weight of Evidence: Accounts_Payable_Days1';",
-    "IF MISSING(Accounts_Payable_Days1) THEN DO;",
-    "    GRP_Accounts_Payable_Days1 = 5;",
-    "    WOE_Accounts_Payable_Days1 = -0.38022322927;",
-    "END;",
-    "IF NOT MISSING(Accounts_Payable_Days1) THEN DO;",
-    "    IF Accounts_Payable_Days1 < 5.96 THEN DO;",
-    "        GRP_Accounts_Payable_Days1 = 1;",
-    "        WOE_Accounts_Payable_Days1 = 0.1326085862;",
-    "    END;",
-    "    IF Accounts_Payable_Days1 >= 5.96 AND Accounts_Payable_Days1 < 73.06 THEN DO;",
-    "        GRP_Accounts_Payable_Days1 = 2;",
-    "        WOE_Accounts_Payable_Days1 = 0.5422631185;",
-    "    END;",
-    "END;"
-]
 
-# Run the functions
-intermediate_data = create_intermediate_dataset(test_content)
-processed_rules = process_intermediate_data(intermediate_data)
