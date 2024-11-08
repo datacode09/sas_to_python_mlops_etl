@@ -17,9 +17,8 @@ def load_rules(file_path):
     except Exception as e:
         print(f"An error occurred while loading the rules file: {e}")
         return []
-
 def extract_variable_rules(content):
-    """Extract rules for each variable from the SAS file content, formatted with '* Variables:'."""
+    """Extract rules for each variable from the SAS file content, formatted with '* Variable:'."""
     variable_rules = {}
     current_var = None
     current_rules = []
@@ -29,28 +28,42 @@ def extract_variable_rules(content):
             # Display each line for detailed debugging
             print(f"Processing line {i+1}: '{line.strip()}'")  
 
-            # Trim whitespace and match "* Variables:" case-insensitively, with any surrounding spaces
+            # Trim whitespace and match "* Variable:" case-insensitively, with any surrounding spaces
             line = line.strip()
-            if re.search(r"(?i)^\s*\* variables\s*:", line):  # Match lines like "* Variables: VARIABLE_NAME;"
+            if re.search(r"(?i)^\s*\* variable\s*:", line):  # Match lines like "* Variable: VARIABLE_NAME;"
                 # Save previous variable's rules if any
-                if current_var is not None:
+                if current_var is not None and current_rules:
                     variable_rules[current_var] = current_rules
+                    print(f"Saved rules for variable: '{current_var}'")  # Confirm saving rules
 
                 # Extract the variable name flexibly
                 parts = line.split(":")
                 if len(parts) > 1:
-                    current_var = parts[1].strip()  # Capture the variable name after "* Variables:"
+                    current_var = parts[1].strip()  # Capture the variable name after "* Variable:"
                     current_rules = []
                     print(f"Detected new variable: '{current_var}'")  # Debugging output for detected variables
                 else:
                     print(f"Warning: Variable declaration found but no name on line {i+1}")
 
-            elif line:  # Collect non-empty lines as part of the current variable's rules
-                current_rules.append(line)
+            elif line.startswith("LABEL"):
+                # Skip LABEL lines as they're for documentation
+                print(f"Skipping LABEL line on line {i+1}")
+
+            elif line.startswith("IF") and current_var:  # Start of an IF condition block
+                # Collect the entire IF block as a rule
+                rule_lines = [line]
+                for j in range(i+1, len(content)):
+                    if "END;" in content[j]:  # Look for the end of the IF block
+                        rule_lines.append(content[j].strip())
+                        break
+                    rule_lines.append(content[j].strip())
+                current_rules.append(" ".join(rule_lines))
+                print(f"Captured rule for variable '{current_var}' on line {i+1}")
 
         # Save the last variable's rules
-        if current_var is not None:
+        if current_var is not None and current_rules:
             variable_rules[current_var] = current_rules
+            print(f"Saved rules for last variable: '{current_var}'")
 
         if not variable_rules:
             raise ValueError("No rules were found in the content.")
