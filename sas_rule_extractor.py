@@ -19,28 +19,33 @@ def load_rules(file_path):
         return []
 
 def extract_variable_rules(content):
-    """Extract rules for each variable from the SAS file content."""
+    """Extract rules for each variable from the SAS file content, formatted with '* Variables:'."""
     variable_rules = {}
     current_var = None
     current_rules = []
 
     try:
         for i, line in enumerate(content):
-            print(f"Processing line {i+1}: '{line.strip()}'")  # Debugging output to show each line
+            # Display each line for detailed debugging
+            print(f"Processing line {i+1}: '{line.strip()}'")  
 
-            # Trim leading/trailing whitespace and check for "Variable:" line
+            # Trim whitespace and match "* Variables:" case-insensitively, with any surrounding spaces
             line = line.strip()
-            if re.match(r"(?i)^\s*variable\s*:", line):  # Case-insensitive and allows spaces around "Variable:"
-                # Save the previous variable and its rules
+            if re.search(r"(?i)^\s*\* variables\s*:", line):  # Match lines like "* Variables: VARIABLE_NAME;"
+                # Save previous variable's rules if any
                 if current_var is not None:
                     variable_rules[current_var] = current_rules
 
-                # Start a new variable
-                current_var = line.split(":")[1].strip()  # Extract variable name
-                current_rules = []
-                print(f"Detected new variable: {current_var}")  # Debugging output for detected variables
-            elif line:
-                # Collect rule lines for the current variable
+                # Extract the variable name flexibly
+                parts = line.split(":")
+                if len(parts) > 1:
+                    current_var = parts[1].strip()  # Capture the variable name after "* Variables:"
+                    current_rules = []
+                    print(f"Detected new variable: '{current_var}'")  # Debugging output for detected variables
+                else:
+                    print(f"Warning: Variable declaration found but no name on line {i+1}")
+
+            elif line:  # Collect non-empty lines as part of the current variable's rules
                 current_rules.append(line)
 
         # Save the last variable's rules
