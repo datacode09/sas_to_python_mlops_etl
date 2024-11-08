@@ -17,11 +17,14 @@ def load_rules(file_path):
     except Exception as e:
         print(f"An error occurred while loading the rules file: {e}")
         return []
+
+
 def extract_variable_rules(content):
     """Extract rules for each variable from the SAS file content, formatted with '* Variable:'."""
     variable_rules = {}
     current_var = None
     current_rules = []
+    capturing_rule = False  # Flag to indicate if we're within a rule block
 
     try:
         for i, line in enumerate(content):
@@ -40,7 +43,7 @@ def extract_variable_rules(content):
                 parts = line.split(":")
                 if len(parts) > 1:
                     current_var = parts[1].strip()  # Capture the variable name after "* Variable:"
-                    current_rules = []
+                    current_rules = []  # Reset rules for new variable
                     print(f"Detected new variable: '{current_var}'")  # Debugging output for detected variables
                 else:
                     print(f"Warning: Variable declaration found but no name on line {i+1}")
@@ -50,15 +53,20 @@ def extract_variable_rules(content):
                 print(f"Skipping LABEL line on line {i+1}")
 
             elif line.startswith("IF") and current_var:  # Start of an IF condition block
-                # Collect the entire IF block as a rule
+                # Start capturing a new rule
+                capturing_rule = True
                 rule_lines = [line]
-                for j in range(i+1, len(content)):
-                    if "END;" in content[j]:  # Look for the end of the IF block
-                        rule_lines.append(content[j].strip())
-                        break
-                    rule_lines.append(content[j].strip())
-                current_rules.append(" ".join(rule_lines))
-                print(f"Captured rule for variable '{current_var}' on line {i+1}")
+                print(f"Started capturing rule for variable '{current_var}' at line {i+1}")
+
+            elif capturing_rule:
+                # Continue appending lines to the current rule until we reach "END;"
+                rule_lines.append(line)
+                if "END;" in line:  # End of the current rule block
+                    capturing_rule = False
+                    # Append the full rule block to current_rules
+                    current_rules.append(" ".join(rule_lines))
+                    print(f"Completed rule capture for variable '{current_var}' at line {i+1}")
+                    rule_lines = []
 
         # Save the last variable's rules
         if current_var is not None and current_rules:
@@ -75,6 +83,7 @@ def extract_variable_rules(content):
     except Exception as e:
         print(f"An error occurred while extracting variable rules on line {i+1}: {e}")
         return {}
+
 
 
 def parse_rule(line):
