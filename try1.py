@@ -929,17 +929,87 @@ def all_out_scorer_no_seg1(scoreout, mod_data, cfg):
 
     return tmpout
 
-# Placeholder function for sel_var_full, assuming it is a column selector/renamer
-def sel_var_full(df, list_var, ind):
-    # Placeholder for the actual logic of sel_var_full
-    # Implement the necessary selection and renaming as per SAS macro logic
-    return df
+import pandas as pd
+import numpy as np
 
-# Example usage
-# Assume scoreout and mod_data are DataFrames loaded with appropriate data, and `cfg` is defined
-cfg = config()  # Load the configuration
-result_df = all_out_scorer_no_seg1(scoreout, mod_data, cfg)
-print(result_df)
+def all_out_scorer_cagc_lc_usgc2(scoreout, mod_data, var_list_abs, var_list_rel, mod_list, target_score=200, target_odds=50, pts_double_odds=20):
+    """
+    Function that simulates the SAS macro 'all_out_scorer_cagc_lc_usgc2'.
+    Processes segments 'seg1', 'seg2', and 'seg3' with specific variable transformations and scoring.
+    """
+
+    # Helper function for SQL join simulation
+    def run_sql_query(scoreout, mod_data):
+        temp1 = pd.merge(
+            scoreout,
+            mod_data,
+            left_on=["RPT_PRD_END_DT", "rel_uen"],
+            right_on=["RPT_PRD_END_DT", "uen_ID"],
+            how="inner"
+        )
+        temp1["mod_rel_uen"] = temp1["uen_ID"]
+        return temp1
+
+    # Helper function to apply the `sel_var_full` transformation and scoring calculation
+    def apply_macro_operations(data, var_list_abs, var_list_rel, mod_list):
+        for i, var in enumerate(var_list_abs):
+            data[f"abs_trend_{i}"] = data[var]  # Placeholder for `abs_trend`
+        
+        for i, var in enumerate(var_list_rel):
+            data[f"rel_trend_{i}"] = data[var]  # Placeholder for `trend`
+
+        # Apply scoring logic (simulating `cal_score`)
+        data["predict1"] = data["predict"]  # Rename `predict` to `predict1`
+        data["score"] = data["predict1"] * target_score / (target_odds + pts_double_odds)  # Placeholder score calculation
+
+        return data
+
+    # Step 1: SQL-like join on scoreout and mod_data
+    temp1 = run_sql_query(scoreout, mod_data)
+
+    # Segment-specific processing for seg1, seg2, and seg3
+    combined_output = []
+
+    for segment in ["seg1", "seg2", "seg3"]:
+        # Step 2: Filter by segment
+        segment_data = temp1[temp1["seg1"] == segment].copy()
+
+        # Step 3: Apply variable selections and scoring transformations
+        segment_data = apply_macro_operations(segment_data, var_list_abs, var_list_rel, mod_list)
+
+        # Step 4: Rename columns based on the segment
+        segment_data.rename(columns={"score": f"score_{segment}", "predict1": f"predict_{segment}"}, inplace=True)
+
+        # Append segment data to combined output list
+        combined_output.append(segment_data)
+
+    # Concatenate segment results
+    final_output = pd.concat(combined_output)
+
+    return final_output
+
+# # Sample input data for demonstration purposes
+# # Replace these with actual data frames loaded with necessary information.
+# scoreout = pd.DataFrame({
+#     "RPT_PRD_END_DT": ["2024-01-01", "2024-01-02"],
+#     "rel_uen": [1, 2],
+#     "seg1": ["seg1", "seg2"],
+#     "predict": [0.5, 0.7]
+# })
+# mod_data = pd.DataFrame({
+#     "RPT_PRD_END_DT": ["2024-01-01", "2024-01-02"],
+#     "uen_ID": [1, 2]
+# })
+
+# # Variable lists as placeholders
+# var_list_abs = ["abs_var1", "abs_var2"]
+# var_list_rel = ["rel_var1", "rel_var2"]
+# mod_list = ["mod1", "mod2"]
+
+# # Call function with sample data
+# final_result = all_out_scorer_cagc_lc_usgc2(scoreout, mod_data, var_list_abs, var_list_rel, mod_list)
+# print(final_result)
+
 
 
 
