@@ -171,7 +171,197 @@ def config():
         "woe_code_hvr": woe_code_hvr,  # Function for WOE transformation
         "target_score": 200,
         "target_odds": 50,
-        "pts_double_odds": 20
+        "pts_double_odds": 20,
+
+
+        "cust_gen_var1": [
+            "WOE_CONNECTED_AUTHORIZATION", "WOE_CountFFbrate", "WOE_cg6_s_nct_bd_cst", 
+            "WOE_cg6u6ur", "WOE_mgmt_exp", "WOE_s_n_seq_dft_cst", "WOE_years_with_bank"
+        ],
+        "hvr_var1": [
+            "WOE_cg6u6r"
+        ],
+        "fin_var1": [
+            "WOE_Current_Ratio", "WOE_Debt_to_Ebitda", "WOE_Ebit_to_interest", 
+            "WOE_ag3_cr9", "WOE_TLTNMKTSPTCR", "WOE_TLTNMKTSPT", "WOE_max6_Ttl_Debt", 
+            "WOE_Bk_qty", "WOE_CDs", "WOE_CapExRatio", "WOE_Debt_to_Ebitda", 
+            "WOE_ROE", "WOE_Quick_Ratio", "WOE_ag3_cr9", "WOE_TLTNMKTSPTCR", 
+            "WOE_max6_CD", "WOE_TTLNTSTMK", "WOE_CNTSPTREL"
+        ],
+        "opacct_var1": [
+            "WOE_ag3_avg_balance", "WOE_am56_cr_trans_opic", "WOE_first_fin_acty_dt", 
+            "WOE_mx8_cr_trans_creditinc", "WOE_ag3_avg_drawdown", "WOE_distance_to_usage"
+        ],
+        "loan_var1": [
+            "WOE_n_lo_seq", "WOE_ag3_LO", "WOE_acct_open_date", "WOE_balance_new", 
+            "WOE_wgt_avg_int_rate_ratetype_Y"
+        ],
+        "rev_var1": [
+            "WOE_ag5_max_drawdown", "WOE_avg_balance_cr", "WOE_avg_balance", 
+            "WOE_wgt_avg_int_rate_ratetype_Y"
+        ],
+        
+        # Grouped versions (GRP variables)
+        "cust_gen_var2": [
+            "GRP_CONNECTED_AUTHORIZATION", "GRP_CountFFbrate", "GRP_cg6_s_nct_bd_cst", 
+            "GRP_cg6u6ur", "GRP_mgmt_exp", "GRP_s_n_seq_dft_cst", "GRP_years_with_bank"
+        ],
+        "hvr_var2": [
+            "GRP_cg6u6r"
+        ],
+        "fin_var2": [
+            "GRP_Current_Ratio", "GRP_Debt_to_Ebitda", "GRP_Ebit_to_interest", 
+            "GRP_ag3_cr9", "GRP_TLTNMKTSPTCR", "GRP_TLTNMKTSPT", "GRP_max6_Ttl_Debt", 
+            "GRP_Bk_qty", "GRP_CDs", "GRP_CapExRatio", "GRP_Debt_to_Ebitda", 
+            "GRP_ROE", "GRP_Quick_Ratio", "GRP_ag3_cr9", "GRP_TLTNMKTSPTCR", 
+            "GRP_max6_CD", "GRP_TTLNTSTMK", "GRP_CNTSPTREL"
+        ],
+        "opacct_var2": [
+            "GRP_ag3_avg_balance", "GRP_am56_cr_trans_opic", "GRP_first_fin_acty_dt", 
+            "GRP_mx8_cr_trans_creditinc", "GRP_ag3_avg_drawdown", "GRP_distance_to_usage"
+        ],
+        "loan_var2": [
+            "GRP_n_lo_seq", "GRP_ag3_LO", "GRP_acct_open_date", "GRP_balance_new", 
+            "GRP_wgt_avg_int_rate_ratetype_Y"
+        ],
+        "rev_var2": [
+            "GRP_ag5_max_drawdown", "GRP_avg_balance_cr", "GRP_avg_balance", 
+            "GRP_wgt_avg_int_rate_ratetype_Y"
+        ],
+        
+        # 3rd versions
+        "cust_gen_var3": [
+            "CONNECTED_AUTHORIZATION", "CountFFbrate", "cg6_s_nct_bd_cst", 
+            "cg6u6ur", "mgmt_exp", "s_n_seq_dft_cst", "years_with_bank"
+        ],
+        "hvr_var3": [
+            "cg6u6r"
+        ],
+        "fin_var3": [
+            "Current_Ratio", "Debt_to_Ebitda", "Ebit_to_interest", 
+            "ag3_cr9", "TLTNMKTSPTCR", "TLTNMKTSPT", "max6_Ttl_Debt", 
+            "Bk_qty", "CDs", "CapExRatio", "Debt_to_Ebitda", 
+            "ROE", "Quick_Ratio", "ag3_cr9", "TLTNMKTSPTCR", 
+            "max6_CD", "TTLNTSTMK", "CNTSPTREL"
+        ],
+        "opacct_var3": [
+            "ag3_avg_balance", "am56_cr_trans_opic", "first_fin_acty_dt", 
+            "mx8_cr_trans_creditinc", "ag3_avg_drawdown", "distance_to_usage"
+        ],
+        "loan_var3": [
+            "n_lo_seq", "ag3_LO", "acct_open_date", "balance_new", 
+            "wgt_avg_int_rate_ratetype_Y"
+        ],
+        "rev_var3": [
+            "ag5_max_drawdown", "avg_balance_cr", "avg_balance", 
+            "wgt_avg_int_rate_ratetype_Y"
+        ],
+        
+        # Combined variables
+        "cust_gen_var": ["cust_gen_var1", "cust_gen_var2", "cust_gen_var3"],
+        "hvr_var": ["hvr_var1", "hvr_var2", "hvr_var3"],
+        "fin_var": ["fin_var1", "fin_var2", "fin_var3"],
+        "opacct_var": ["opacct_var1", "opacct_var2", "opacct_var3"],
+        "loan_var": ["loan_var1", "loan_var2", "loan_var3"],
+        "rev_var": ["rev_var1", "rev_var2", "rev_var3"],
+        
+        # List of help_var are not input into models; they are for dashboard purposes
+        "help_var": [
+            "excessdays", "delinquent_since", "recent_delq_amt_nograce",
+            "recent_delq_amt", "OD_Times_M", "OD_DAYS_LTD", "drawdown",
+            "OD_MaxAmt_M", "max_balance", "min_balance", "n_credit_trans",
+            "n_debit_trans", "auth_amt", "balance_new", "usage_new", 
+            "max_balance", "min_balance", "Rstd_Bal_Ds"
+        ],
+
+        # Integrated variables for the model
+        "intg_var": [
+            "load1", "LVL1_RPT_BOD_NM", "LVL3_RPT_BOD_NM", "LVL5_RPT_BOD_NM",
+            "REL_RSK_RTG_MODL_CD", "REL_UEN", "RPT_PRD_END_DT", 
+            "cust_gen_var", "hvr_var", "fin_var", "opacct_var", 
+            "loan_var", "rev_var", "help_var"
+        ],
+        
+        # Defining the previously defined variables within the config
+        "cust_gen_var1": [
+            "WOE_CONNECTED_AUTHORIZATION", "WOE_CountFFbrate", "WOE_cg6_s_nct_bd_cst",
+            "WOE_cg6u6ur", "WOE_mgmt_exp", "WOE_s_n_seq_dft_cst", "WOE_years_with_bank"
+        ],
+        "cust_gen_var2": [
+            "GRP_CONNECTED_AUTHORIZATION", "GRP_CountFFbrate", "GRP_cg6_s_nct_bd_cst",
+            "GRP_cg6u6ur", "GRP_mgmt_exp", "GRP_s_n_seq_dft_cst", "GRP_years_with_bank"
+        ],
+        "cust_gen_var3": [
+            "CONNECTED_AUTHORIZATION", "CountFFbrate", "cg6_s_nct_bd_cst",
+            "cg6u6ur", "mgmt_exp", "s_n_seq_dft_cst", "years_with_bank"
+        ],
+        
+        "hvr_var1": ["WOE_cg6u6r"],
+        "hvr_var2": ["GRP_cg6u6r"],
+        "hvr_var3": ["cg6u6r"],
+        
+        "fin_var1": [
+            "WOE_Current_Ratio", "WOE_Debt_to_Ebitda", "WOE_Ebit_to_interest", 
+            "WOE_ag3_cr9", "WOE_TLTNMKTSPTCR", "WOE_TLTNMKTSPT", "WOE_max6_Ttl_Debt", 
+            "WOE_Bk_qty", "WOE_CDs", "WOE_CapExRatio", "WOE_Debt_to_Ebitda", 
+            "WOE_ROE", "WOE_Quick_Ratio", "WOE_ag3_cr9", "WOE_TLTNMKTSPTCR", 
+            "WOE_max6_CD", "WOE_TTLNTSTMK", "WOE_CNTSPTREL"
+        ],
+        "fin_var2": [
+            "GRP_Current_Ratio", "GRP_Debt_to_Ebitda", "GRP_Ebit_to_interest", 
+            "GRP_ag3_cr9", "GRP_TLTNMKTSPTCR", "GRP_TLTNMKTSPT", "GRP_max6_Ttl_Debt", 
+            "GRP_Bk_qty", "GRP_CDs", "GRP_CapExRatio", "GRP_Debt_to_Ebitda", 
+            "GRP_ROE", "GRP_Quick_Ratio", "GRP_ag3_cr9", "GRP_TLTNMKTSPTCR", 
+            "GRP_max6_CD", "GRP_TTLNTSTMK", "GRP_CNTSPTREL"
+        ],
+        "fin_var3": [
+            "Current_Ratio", "Debt_to_Ebitda", "Ebit_to_interest", 
+            "ag3_cr9", "TLTNMKTSPTCR", "TLTNMKTSPT", "max6_Ttl_Debt", 
+            "Bk_qty", "CDs", "CapExRatio", "Debt_to_Ebitda", 
+            "ROE", "Quick_Ratio", "ag3_cr9", "TLTNMKTSPTCR", 
+            "max6_CD", "TTLNTSTMK", "CNTSPTREL"
+        ],
+
+        "opacct_var1": [
+            "WOE_ag3_avg_balance", "WOE_am56_cr_trans_opic", "WOE_first_fin_acty_dt", 
+            "WOE_mx8_cr_trans_creditinc", "WOE_ag3_avg_drawdown", "WOE_distance_to_usage"
+        ],
+        "opacct_var2": [
+            "GRP_ag3_avg_balance", "GRP_am56_cr_trans_opic", "GRP_first_fin_acty_dt", 
+            "GRP_mx8_cr_trans_creditinc", "GRP_ag3_avg_drawdown", "GRP_distance_to_usage"
+        ],
+        "opacct_var3": [
+            "ag3_avg_balance", "am56_cr_trans_opic", "first_fin_acty_dt", 
+            "mx8_cr_trans_creditinc", "ag3_avg_drawdown", "distance_to_usage"
+        ],
+
+        "loan_var1": [
+            "WOE_n_lo_seq", "WOE_ag3_LO", "WOE_acct_open_date", "WOE_balance_new", 
+            "WOE_wgt_avg_int_rate_ratetype_Y"
+        ],
+        "loan_var2": [
+            "GRP_n_lo_seq", "GRP_ag3_LO", "GRP_acct_open_date", "GRP_balance_new", 
+            "GRP_wgt_avg_int_rate_ratetype_Y"
+        ],
+        "loan_var3": [
+            "n_lo_seq", "ag3_LO", "acct_open_date", "balance_new", 
+            "wgt_avg_int_rate_ratetype_Y"
+        ],
+
+        "rev_var1": [
+            "WOE_ag5_max_drawdown", "WOE_avg_balance_cr", "WOE_avg_balance", 
+            "WOE_wgt_avg_int_rate_ratetype_Y"
+        ],
+        "rev_var2": [
+            "GRP_ag5_max_drawdown", "GRP_avg_balance_cr", "GRP_avg_balance", 
+            "GRP_wgt_avg_int_rate_ratetype_Y"
+        ],
+        "rev_var3": [
+            "ag5_max_drawdown", "avg_balance_cr", "avg_balance", 
+            "wgt_avg_int_rate_ratetype_Y"
+        ]
+
+
     }
     return config_data
 
