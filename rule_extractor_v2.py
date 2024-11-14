@@ -77,3 +77,52 @@ def process_intermediate_data(intermediate_data):
     return variable_rules
 
 
+def parse_sas_condition(condition):
+    """Convert a SAS condition to a Python-compatible condition, handling variables with underscores."""
+    # Replace `MISSING(variable)` with `pd.isna(df['variable'])`
+    condition = re.sub(r"MISSING\((\w+)\)", r"pd.isna(df['\1'])", condition, flags=re.IGNORECASE)
+
+    # Replace `variable eq value` with `df['variable'] == value`, supporting underscore variables
+    condition = re.sub(r"(\w+)\s+eq\s+(['\w\d\.]+)", r"df['\1'] == \2", condition, flags=re.IGNORECASE)
+    
+    # Replace `variable ne value` with `df['variable'] != value`, supporting underscore variables
+    condition = re.sub(r"(\w+)\s+ne\s+(['\w\d\.]+)", r"df['\1'] != \2", condition, flags=re.IGNORECASE)
+
+    # Replace `AND` and `OR` with `&` and `|`
+    condition = condition.replace("AND", "&").replace("OR", "|")
+
+    return condition
+
+
+def apply_rule_to_dataframe(df, rule):
+    """Apply a single rule block with nested IF, ELSE IF, and ELSE conditions."""
+    # Split the rule into individual condition-action pairs
+    conditions = re.findall(r"(IF\s+.+?\s+THEN\s+DO;|ELSE\s+IF\s+.+?\s+THEN\s+DO;|ELSE\s+DO;)", rule, re.IGNORECASE)
+    actions = re.split(r"IF\s+.+?\s+THEN\s+DO;|ELSE\s+IF\s+.+?\s+THEN\s+DO;|ELSE\s+DO;", rule, re.IGNORECASE)[1:]
+    
+    for condition, action_block in zip(conditions, actions):
+        # Determine the condition to apply, handling "IF", "ELSE IF", and "ELSE"
+        if condition.startswith("IF") or condition.startswith("ELSE IF"):
+            condition_str = re.search(r"IF (.+?) THEN DO;", condition, re.IGNORECASE).group(1)
+            parsed_condition = parse_sas_condition(condition_str)
+            mask = eval(parsed_condition)
+        else:  # ELSE case, apply where no previous conditions matched
+            mask = ~df.loc[df.index].any(axis=1)  # Apply to rows where no previous conditions matched
+        
+        # Apply each assignment in the action block for rows that match the mask
+        for assignment in action_block.split(";"):
+            assignment = assignment.strip()
+            if assignment:
+                target_column, value = assignment.split("=")
+                target_column = target_column.strip()
+                value = value.strip()
+                
+                # Ensure the target column exists
+                if target_column not in df.columns:
+                    df[target_column] = None
+                
+                # Apply assignment based on the mask
+                df.loc[mask, target_column] = eval(value)
+                print(f"Applied rule: {target_column} = {value} where {parsed_condition if condition.startswith('IF') else 'ELSE'}")
+
+
