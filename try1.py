@@ -875,6 +875,62 @@ def avg_trend(df, var_list):
 # print(data)
 
 import pandas as pd
+import numpy as np
+
+def sel_var_full(input_df, list_df, ind_value):
+    # Step 1: Filter Data (similar to data tmp_lst)
+    tmp_lst = list_df[list_df['ind'] == ind_value][['Estimate']]
+    
+    # Step 2: Transpose Data (similar to proc transpose)
+    tmp_lst_trns = tmp_lst.T
+    tmp_lst_trns.columns = [f'var{i+1}' for i in range(tmp_lst_trns.shape[1])]
+    
+    # Step 3: SQL Processing - dynamically create lists based on counts
+    cnt = tmp_lst_trns.shape[1]  # count of variables
+    vl = [f'var{i+1}' for i in range(cnt)]
+    vci = [f'vc{i+1}' for i in range(cnt)]
+    prm0 = [f'prm0_{i+1}' for i in range(cnt)]
+    prm1 = [f'prm1_{i+1}' for i in range(cnt)]
+    
+    # Step 4: Calculate logistic regression score
+    # Assuming prm0 and prm1 are coefficients already defined for each variable
+    # We use sample coefficients here for demonstration
+    coefficients = np.random.rand(cnt)  # Replace with actual coefficients if available
+    
+    input_df['logit'] = coefficients[0]  # Initialize with intercept (prm0)
+    
+    for i in range(cnt):
+        input_df['logit'] += coefficients[i] * input_df[vl[i]]  # prm1_i * var_i
+    
+    # Logistic transformation
+    input_df['predict'] = 1 / (1 + np.exp(-input_df['logit']))
+    
+    # Rename columns as needed
+    input_df = input_df.rename(columns={'predict': 'predict1', 'logit': 'predict'})
+    
+    return input_df[['predict1']]
+
+# Example Usage
+# Assuming `input_df` is the main DataFrame and `list_df` contains the variables and `Estimate` values
+input_data = {
+    'var1': [1, 2, 3],
+    'var2': [4, 5, 6],
+    'var3': [7, 8, 9]
+}
+input_df = pd.DataFrame(input_data)
+
+list_data = {
+    'ind': [1, 2, 3],
+    'Estimate': [0.1, 0.2, 0.3]
+}
+list_df = pd.DataFrame(list_data)
+
+# Call the function
+result_df = sel_var_full(input_df, list_df, ind_value=1)
+print(result_df)
+
+
+import pandas as pd
 import pandasql as ps
 
 def all_out_scorer_no_seg1(scoreout, mod_data, cfg):
